@@ -7,17 +7,17 @@ import (
 	"net/http"
 )
 
-type UrlShortenerApp struct {
+type URLShortenerApp struct {
 	urls map[string]string
 }
 
-func NewUrlShortenerApp() *UrlShortenerApp {
-	return &UrlShortenerApp{
+func NewURLShortenerApp() *URLShortenerApp {
+	return &URLShortenerApp{
 		urls: make(map[string]string),
 	}
 }
 
-func (a *UrlShortenerApp) Run() error {
+func (a *URLShortenerApp) Run() error {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -33,25 +33,25 @@ func (a *UrlShortenerApp) Run() error {
 				return
 			}
 
-			urlId := util.RandStringRunes(10)
-			for a.urls[urlId] != "" {
-				urlId = util.RandStringRunes(10)
+			urlID := util.RandStringRunes(10)
+			for a.urls[urlID] != "" {
+				urlID = util.RandStringRunes(10)
 			}
 
-			a.urls[urlId] = string(rawBody)
+			a.urls[urlID] = string(rawBody)
 
 			w.Header().Add("Content-Type", "plain/text")
 			w.WriteHeader(http.StatusCreated)
-			_, _ = w.Write([]byte("http://localhost:8080/" + urlId))
+			_, _ = w.Write([]byte("http://localhost:8080/" + urlID))
 
 			return
 		}
 
 		if r.Method == http.MethodGet {
-			urlId := r.RequestURI[1:len(r.RequestURI)]
+			urlID := r.RequestURI[1:len(r.RequestURI)]
 
 			w.Header().Add("Content-Type", "plain/text")
-			w.Header().Add("Location", a.urls[urlId])
+			w.Header().Add("Location", a.urls[urlID])
 			w.WriteHeader(http.StatusTemporaryRedirect)
 
 			return
