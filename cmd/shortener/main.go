@@ -7,6 +7,7 @@ import (
 
 func main() {
 	shortenerApp := app.NewURLShortenerApp()
+	shortenerApp.RegisterHandlers()
 	err := shortenerApp.Run()
 	if err != nil {
 		_ = fmt.Errorf("main: ошибка при запуске urlshortener: %v", err)

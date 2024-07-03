@@ -5,24 +5,29 @@ import (
 	"github.com/vkhrushchev/urlshortener/internal/util"
 	"io"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type URLShortenerApp struct {
-	urls map[string]string
+	urls   map[string]string
+	router chi.Router
 }
 
 func NewURLShortenerApp() *URLShortenerApp {
 	return &URLShortenerApp{
-		urls: make(map[string]string),
+		urls:   make(map[string]string),
+		router: chi.NewRouter(),
 	}
 }
 
+func (a *URLShortenerApp) RegisterHandlers() {
+	a.router.Post("/", a.createShortUrlHandler)
+	a.router.Get("/{id}", a.getUrlHandler)
+}
+
 func (a *URLShortenerApp) Run() error {
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("/", a.handleRequest)
-
-	err := http.ListenAndServe("localhost:8080", mux)
+	err := http.ListenAndServe("localhost:8080", a.router)
 	if err != nil {
 		return err
 	}
@@ -30,15 +35,15 @@ func (a *URLShortenerApp) Run() error {
 	return nil
 }
 
-func (a *URLShortenerApp) handleRequest(w http.ResponseWriter, r *http.Request) {
+func (a *URLShortenerApp) createShortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		rawBody := make([]byte, r.ContentLength)
 		_, err := r.Body.Read(rawBody)
 		if err != nil && err != io.EOF {
-			_ = fmt.Errorf("app: error reading body: %v", err)
+			_ = fmt.Errorf("app: error reading requestBody: %v", err)
 
 			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte("app: error reading body"))
+			_, _ = w.Write([]byte("app: error reading requestBody"))
 
 			return
 		}
@@ -57,15 +62,22 @@ func (a *URLShortenerApp) handleRequest(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if r.Method == http.MethodGet {
-		urlID := r.RequestURI[1:len(r.RequestURI)]
+	w.WriteHeader(http.StatusBadRequest)
+}
 
+func (a *URLShortenerApp) getUrlHandler(w http.ResponseWriter, r *http.Request) {
+	urlID := chi.URLParam(r, "id")
+	url := a.urls[urlID]
+
+	if url != "" {
 		w.Header().Add("Content-Type", "plain/text")
-		w.Header().Add("Location", a.urls[urlID])
+		w.Header().Add("Location", url)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 
 		return
 	}
 
-	w.WriteHeader(http.StatusBadRequest)
+	w.WriteHeader(http.StatusNotFound)
+
+	return
 }
