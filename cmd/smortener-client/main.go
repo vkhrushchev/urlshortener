@@ -15,11 +15,11 @@ func main() {
 	// открываем потоковое чтение из консоли
 	reader := bufio.NewReader(os.Stdin)
 	// читаем строку из консоли
-	longUrl, err := reader.ReadString('\n')
+	longURL, err := reader.ReadString('\n')
 	if err != nil {
 		panic(err)
 	}
-	longUrl = strings.TrimSuffix(longUrl, "\n")
+	longURL = strings.TrimSuffix(longURL, "\n")
 
 	// добавляем HTTP-клиент
 	restyClient := resty.New()
@@ -28,11 +28,10 @@ func main() {
 	// пишем и выполняем запрос
 	restyResponse, err := restyClient.R().
 		SetHeader("Content-Type", "plain/text").
-		SetBody(longUrl).
+		SetBody(longURL).
 		Post("/")
 	if err != nil {
 		panic(err)
-		return
 	}
 
 	// выводим результат в консоль
