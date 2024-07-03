@@ -11,7 +11,7 @@ import (
 )
 
 func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
-	app := NewURLShortenerApp()
+	app := NewURLShortenerApp("", "")
 	app.RegisterHandlers()
 
 	ts := httptest.NewServer(app.router)
@@ -41,7 +41,7 @@ func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
 }
 
 func TestURLShortenerApp_getURLHandler(t *testing.T) {
-	app := NewURLShortenerApp()
+	app := NewURLShortenerApp("", "")
 	app.RegisterHandlers()
 
 	// добавляем подготовленные данные для тестов

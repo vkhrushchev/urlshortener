@@ -6,7 +6,9 @@ import (
 )
 
 func main() {
-	shortenerApp := app.NewURLShortenerApp()
+	parseFlags()
+
+	shortenerApp := app.NewURLShortenerApp(flags.runAddr, flags.baseUrl)
 	shortenerApp.RegisterHandlers()
 	err := shortenerApp.Run()
 	if err != nil {

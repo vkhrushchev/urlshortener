@@ -5,19 +5,24 @@ import (
 	"github.com/vkhrushchev/urlshortener/internal/util"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 )
 
 type URLShortenerApp struct {
-	urls   map[string]string
-	router chi.Router
+	urls    map[string]string
+	router  chi.Router
+	runAddr string
+	baseURL string
 }
 
-func NewURLShortenerApp() *URLShortenerApp {
+func NewURLShortenerApp(runAddr string, baseURL string) *URLShortenerApp {
 	return &URLShortenerApp{
-		urls:   make(map[string]string),
-		router: chi.NewRouter(),
+		urls:    make(map[string]string),
+		router:  chi.NewRouter(),
+		runAddr: runAddr,
+		baseURL: baseURL,
 	}
 }
 
@@ -27,7 +32,10 @@ func (a *URLShortenerApp) RegisterHandlers() {
 }
 
 func (a *URLShortenerApp) Run() error {
-	err := http.ListenAndServe("localhost:8080", a.router)
+	fmt.Printf("Listening on %s\n", a.runAddr)
+	fmt.Printf("BaseURL: %s\n", a.baseURL)
+
+	err := http.ListenAndServe(a.runAddr, a.router)
 	if err != nil {
 		return err
 	}
@@ -57,7 +65,15 @@ func (a *URLShortenerApp) createShortURLHandler(w http.ResponseWriter, r *http.R
 
 		w.Header().Add("Content-Type", "plain/text")
 		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte("http://localhost:8080/" + urlID))
+
+		var shortUrl string
+		if strings.HasSuffix(a.baseURL, "/") {
+			shortUrl = a.baseURL + urlID
+		} else {
+			shortUrl = a.baseURL + "/" + urlID
+		}
+
+		_, _ = w.Write([]byte(shortUrl))
 
 		return
 	}
