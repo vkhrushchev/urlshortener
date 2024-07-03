@@ -65,14 +65,14 @@ func (a *URLShortenerApp) createShortURLHandler(w http.ResponseWriter, r *http.R
 	w.Header().Add("Content-Type", "plain/text")
 	w.WriteHeader(http.StatusCreated)
 
-	var shortUrl string
+	var shortURL string
 	if strings.HasSuffix(a.baseURL, "/") {
-		shortUrl = a.baseURL + urlID
+		shortURL = a.baseURL + urlID
 	} else {
-		shortUrl = a.baseURL + "/" + urlID
+		shortURL = a.baseURL + "/" + urlID
 	}
 
-	_, _ = w.Write([]byte(shortUrl))
+	_, _ = w.Write([]byte(shortURL))
 }
 
 func (a *URLShortenerApp) getURLHandler(w http.ResponseWriter, r *http.Request) {
