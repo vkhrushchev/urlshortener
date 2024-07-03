@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func TestURLShortenerApp_createShortUrlHandler(t *testing.T) {
+func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
 	app := NewURLShortenerApp()
 	app.RegisterHandlers()
 
@@ -30,17 +30,17 @@ func TestURLShortenerApp_createShortUrlHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			response, responseBody := executeRequest(t, ts, http.MethodPost, "/", tt.requestBody)
+			statusCode, _, responseBody := executeRequest(t, ts, http.MethodPost, "/", tt.requestBody)
 
-			assert.Equal(t, tt.status, response.StatusCode)
-			if response.StatusCode == http.StatusCreated {
+			assert.Equal(t, tt.status, statusCode)
+			if statusCode == http.StatusCreated {
 				assert.NotEmpty(t, responseBody)
 			}
 		})
 	}
 }
 
-func TestURLShortenerApp_getUrlHandler(t *testing.T) {
+func TestURLShortenerApp_getURLHandler(t *testing.T) {
 	app := NewURLShortenerApp()
 	app.RegisterHandlers()
 
@@ -70,18 +70,18 @@ func TestURLShortenerApp_getUrlHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			response, responseBody := executeRequest(t, ts, http.MethodGet, tt.path, "")
+			statusCode, headers, responseBody := executeRequest(t, ts, http.MethodGet, tt.path, "")
 
-			assert.Equal(t, tt.status, response.StatusCode)
+			assert.Equal(t, tt.status, statusCode)
 			assert.Empty(t, responseBody)
-			if response.StatusCode == http.StatusTemporaryRedirect {
-				assert.Equal(t, tt.location, response.Header.Get("Location"))
+			if statusCode == http.StatusTemporaryRedirect {
+				assert.Equal(t, tt.location, headers.Get("Location"))
 			}
 		})
 	}
 }
 
-func executeRequest(t *testing.T, ts *httptest.Server, method string, path string, requestBody string) (*http.Response, string) {
+func executeRequest(t *testing.T, ts *httptest.Server, method string, path string, requestBody string) (int, http.Header, string) {
 	request, err := http.NewRequest(method, ts.URL+path, strings.NewReader(requestBody))
 	require.NoError(t, err)
 
@@ -97,5 +97,5 @@ func executeRequest(t *testing.T, ts *httptest.Server, method string, path strin
 	require.NoError(t, err)
 	defer response.Body.Close()
 
-	return response, string(responseBody)
+	return response.StatusCode, response.Header, string(responseBody)
 }

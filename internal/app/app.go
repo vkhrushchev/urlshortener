@@ -22,8 +22,8 @@ func NewURLShortenerApp() *URLShortenerApp {
 }
 
 func (a *URLShortenerApp) RegisterHandlers() {
-	a.router.Post("/", a.createShortUrlHandler)
-	a.router.Get("/{id}", a.getUrlHandler)
+	a.router.Post("/", a.createShortURLHandler)
+	a.router.Get("/{id}", a.getURLHandler)
 }
 
 func (a *URLShortenerApp) Run() error {
@@ -35,7 +35,7 @@ func (a *URLShortenerApp) Run() error {
 	return nil
 }
 
-func (a *URLShortenerApp) createShortUrlHandler(w http.ResponseWriter, r *http.Request) {
+func (a *URLShortenerApp) createShortURLHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		rawBody := make([]byte, r.ContentLength)
 		_, err := r.Body.Read(rawBody)
@@ -65,7 +65,7 @@ func (a *URLShortenerApp) createShortUrlHandler(w http.ResponseWriter, r *http.R
 	w.WriteHeader(http.StatusBadRequest)
 }
 
-func (a *URLShortenerApp) getUrlHandler(w http.ResponseWriter, r *http.Request) {
+func (a *URLShortenerApp) getURLHandler(w http.ResponseWriter, r *http.Request) {
 	urlID := chi.URLParam(r, "id")
 	url := a.urls[urlID]
 
@@ -78,6 +78,4 @@ func (a *URLShortenerApp) getUrlHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.WriteHeader(http.StatusNotFound)
-
-	return
 }
