@@ -1,17 +1,28 @@
 package main
 
-import "flag"
+import (
+	"flag"
+	"os"
+)
 
 type Config struct {
 	runAddr string
-	baseUrl string
+	baseURL string
 }
 
 var flags = new(Config)
 
 func parseFlags() {
 	flag.StringVar(&flags.runAddr, "a", "localhost:8080", "HTTP listen address")
-	flag.StringVar(&flags.baseUrl, "b", "http://localhost:8080/", "Base URL")
+	flag.StringVar(&flags.baseURL, "b", "http://localhost:8080/", "Base URL")
 
 	flag.Parse()
+
+	if serverAddrEnv := os.Getenv("SERVER_ADDR"); serverAddrEnv != "" {
+		flags.runAddr = serverAddrEnv
+	}
+
+	if baseURLEnv := os.Getenv("BASE_URL"); baseURLEnv != "" {
+		flags.baseURL = baseURLEnv
+	}
 }

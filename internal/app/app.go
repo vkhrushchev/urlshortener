@@ -73,8 +73,6 @@ func (a *URLShortenerApp) createShortURLHandler(w http.ResponseWriter, r *http.R
 	}
 
 	_, _ = w.Write([]byte(shortUrl))
-
-	return
 }
 
 func (a *URLShortenerApp) getURLHandler(w http.ResponseWriter, r *http.Request) {
