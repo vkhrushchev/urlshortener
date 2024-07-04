@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/vkhrushchev/urlshortener/internal/app"
+	"os"
 )
 
 func main() {
@@ -12,7 +13,10 @@ func main() {
 	shortenerApp.RegisterHandlers()
 	err := shortenerApp.Run()
 	if err != nil {
-		_ = fmt.Errorf("main: ошибка при запуске urlshortener: %v", err)
-		return
+		err = fmt.Errorf("main: ошибка при запуске urlshortener: %v", err)
+		if err != nil {
+			println(err.Error())
+		}
+		os.Exit(1)
 	}
 }

@@ -47,10 +47,16 @@ func (a *URLShortenerApp) createShortURLHandler(w http.ResponseWriter, r *http.R
 	rawBody := make([]byte, r.ContentLength)
 	_, err := r.Body.Read(rawBody)
 	if err != nil && err != io.EOF {
-		_ = fmt.Errorf("app: error reading requestBody: %v", err)
+		err = fmt.Errorf("app: error reading requestBody: %v", err)
+		if err != nil {
+			println(err.Error())
+		}
 
 		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte("app: error reading requestBody"))
+		_, err = w.Write([]byte("app: error reading requestBody"))
+		if err != nil {
+			println(err.Error())
+		}
 
 		return
 	}
@@ -72,20 +78,22 @@ func (a *URLShortenerApp) createShortURLHandler(w http.ResponseWriter, r *http.R
 		shortURL = a.baseURL + "/" + urlID
 	}
 
-	_, _ = w.Write([]byte(shortURL))
+	_, err = w.Write([]byte(shortURL))
+	err = fmt.Errorf("app: error writing response: %v", err)
+	if err != nil {
+		println(err.Error())
+	}
 }
 
 func (a *URLShortenerApp) getURLHandler(w http.ResponseWriter, r *http.Request) {
 	urlID := chi.URLParam(r, "id")
-	url := a.urls[urlID]
 
-	if url != "" {
-		w.Header().Add("Content-Type", "plain/text")
-		w.Header().Add("Location", url)
-		w.WriteHeader(http.StatusTemporaryRedirect)
-
-		return
+	url, found := a.urls[urlID]
+	if !found {
+		w.WriteHeader(http.StatusNotFound)
 	}
 
-	w.WriteHeader(http.StatusNotFound)
+	w.Header().Add("Content-Type", "plain/text")
+	w.Header().Add("Location", url)
+	w.WriteHeader(http.StatusTemporaryRedirect)
 }

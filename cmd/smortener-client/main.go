@@ -17,7 +17,8 @@ func main() {
 	// читаем строку из консоли
 	longURL, err := reader.ReadString('\n')
 	if err != nil {
-		panic(err)
+		println(err.Error())
+		os.Exit(1)
 	}
 	longURL = strings.TrimSuffix(longURL, "\n")
 
@@ -31,7 +32,8 @@ func main() {
 		SetBody(longURL).
 		Post("/")
 	if err != nil {
-		panic(err)
+		println(err.Error())
+		os.Exit(1)
 	}
 
 	// выводим результат в консоль
