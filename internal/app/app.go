@@ -2,10 +2,12 @@ package app
 
 import (
 	"fmt"
-	"github.com/vkhrushchev/urlshortener/internal/util"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/vkhrushchev/urlshortener/internal/middleware"
+	"github.com/vkhrushchev/urlshortener/internal/util"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -27,8 +29,8 @@ func NewURLShortenerApp(runAddr string, baseURL string) *URLShortenerApp {
 }
 
 func (a *URLShortenerApp) RegisterHandlers() {
-	a.router.Post("/", a.createShortURLHandler)
-	a.router.Get("/{id}", a.getURLHandler)
+	a.router.Post("/", middleware.LogRequest(a.createShortURLHandler))
+	a.router.Get("/{id}", middleware.LogRequest(a.getURLHandler))
 }
 
 func (a *URLShortenerApp) Run() error {
@@ -79,8 +81,8 @@ func (a *URLShortenerApp) createShortURLHandler(w http.ResponseWriter, r *http.R
 	}
 
 	_, err = w.Write([]byte(shortURL))
-	err = fmt.Errorf("app: error writing response: %v", err)
 	if err != nil {
+		err = fmt.Errorf("app: error writing response: %v", err)
 		println(err.Error())
 	}
 }
@@ -91,6 +93,7 @@ func (a *URLShortenerApp) getURLHandler(w http.ResponseWriter, r *http.Request) 
 	url, found := a.urls[urlID]
 	if !found {
 		w.WriteHeader(http.StatusNotFound)
+		return
 	}
 
 	w.Header().Add("Content-Type", "plain/text")
