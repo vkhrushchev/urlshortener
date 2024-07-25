@@ -130,7 +130,7 @@ func (a *URLShortenerApp) getURLHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (a *URLShortenerApp) createShortURLHandlerAPI(w http.ResponseWriter, r *http.Request) {
-	apiResponse := &dto.ApiCreateShortURLResponse{}
+	apiResponse := &dto.APICreateShortURLResponse{}
 
 	contentType := r.Header.Get("Content-Type")
 	if contentType != "application/json" {
@@ -149,7 +149,7 @@ func (a *URLShortenerApp) createShortURLHandlerAPI(w http.ResponseWriter, r *htt
 		return
 	}
 
-	var apiRequest dto.ApiCreateShortURLRequest
+	var apiRequest dto.APICreateShortURLRequest
 	if err := json.NewDecoder(r.Body).Decode(&apiRequest); err != nil {
 		log.Infow(
 			"app: Error when decode request body from json",
@@ -167,7 +167,7 @@ func (a *URLShortenerApp) createShortURLHandlerAPI(w http.ResponseWriter, r *htt
 	}
 
 	urlID := a.createShortURLID()
-	a.urls[urlID] = apiRequest.Url
+	a.urls[urlID] = apiRequest.URL
 
 	apiResponse.Result = a.getShortURL(urlID)
 

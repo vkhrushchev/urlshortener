@@ -109,22 +109,22 @@ func TestURLShortnerApp_createShortURLHandlerAPI(t *testing.T) {
 		name               string
 		contentType        string
 		apiRequestRaw      string
-		apiRequest         *dto.ApiCreateShortURLRequest
+		apiRequest         *dto.APICreateShortURLRequest
 		expectedStatusCode int
 	}{
 		{
 			name:        "success",
 			contentType: "application/json",
-			apiRequest: &dto.ApiCreateShortURLRequest{
-				Url: "https://google.com",
+			apiRequest: &dto.APICreateShortURLRequest{
+				URL: "https://google.com",
 			},
 			expectedStatusCode: http.StatusCreated,
 		},
 		{
 			name:        "wrong content type",
 			contentType: "plain/text",
-			apiRequest: &dto.ApiCreateShortURLRequest{
-				Url: "https://google.com",
+			apiRequest: &dto.APICreateShortURLRequest{
+				URL: "https://google.com",
 			},
 			expectedStatusCode: http.StatusBadRequest,
 		},
@@ -159,7 +159,7 @@ func TestURLShortnerApp_createShortURLHandlerAPI(t *testing.T) {
 			assert.Equal(t, tc.expectedStatusCode, statusCode)
 			assert.Equal(t, "application/json", headers.Get("Content-Type"))
 
-			var apiResponse dto.ApiCreateShortURLResponse
+			var apiResponse dto.APICreateShortURLResponse
 			err = json.Unmarshal([]byte(responseBody), &apiResponse)
 			if err != nil {
 				require.NoError(t, err, "app_test: error when marshall dto.ApiCreateShortURLRequest: %v", err)
