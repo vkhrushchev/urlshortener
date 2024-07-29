@@ -68,13 +68,13 @@ func (a *URLShortenerApp) createShortURLHandler(w http.ResponseWriter, r *http.R
 	if err != nil && err != io.EOF {
 		err = fmt.Errorf("app: error reading requestBody: %v", err)
 		if err != nil {
-			println(err.Error())
+			log.Errorw(err.Error())
 		}
 
 		w.WriteHeader(http.StatusInternalServerError)
 		_, err = w.Write([]byte("app: error reading requestBody"))
 		if err != nil {
-			println(err.Error())
+			log.Errorw(err.Error())
 		}
 
 		return
@@ -96,7 +96,7 @@ func (a *URLShortenerApp) createShortURLHandler(w http.ResponseWriter, r *http.R
 	_, err = w.Write([]byte(shortURL))
 	if err != nil {
 		err = fmt.Errorf("app: error writing response: %v", err)
-		println(err.Error())
+		log.Errorw(err.Error())
 	}
 }
 
