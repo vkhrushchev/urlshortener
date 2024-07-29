@@ -63,7 +63,7 @@ func (a *URLShortenerApp) Run() error {
 }
 
 func (a *URLShortenerApp) createShortURLHandler(w http.ResponseWriter, r *http.Request) {
-	bodyBuffer := new(bytes.Buffer)
+	var bodyBuffer bytes.Buffer
 	_, err := bodyBuffer.ReadFrom(r.Body)
 	if err != nil && err != io.EOF {
 		err = fmt.Errorf("app: error reading requestBody: %v", err)
