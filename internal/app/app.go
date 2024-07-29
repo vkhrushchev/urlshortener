@@ -63,7 +63,7 @@ func (a *URLShortenerApp) Run() error {
 
 func (a *URLShortenerApp) createShortURLHandler(w http.ResponseWriter, r *http.Request) {
 	rawBody := make([]byte, r.ContentLength)
-	_, err := r.Body.Read(rawBody)
+	readedBytes, err := r.Body.Read(rawBody)
 	if err != nil && err != io.EOF {
 		err = fmt.Errorf("app: error reading requestBody: %v", err)
 		if err != nil {
@@ -79,8 +79,20 @@ func (a *URLShortenerApp) createShortURLHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	// В r.ContentLength содержится кол-во байт с учетом сжатия.
+	// Сжатое тело заголовка занимает больше чем несжатое, поэтому можно просто обрезать
+	// А вот что будет если сжатого контента будет больше? В rawBody считается не все содержимое или он будет расширен?
+	if r.ContentLength > int64(readedBytes) {
+		rawBody = rawBody[0:readedBytes]
+	}
+
 	urlID := a.createShortURLID()
 	a.urls[urlID] = strings.TrimSpace(string(rawBody))
+	log.Infow(
+		"app: short_url_added",
+		"urlID", urlID,
+		"fullURL", a.urls[urlID],
+	)
 
 	w.Header().Add("Content-Type", "plain/text")
 	w.WriteHeader(http.StatusCreated)

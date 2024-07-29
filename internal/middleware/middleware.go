@@ -45,6 +45,7 @@ func LogRequestMiddleware(next func(w http.ResponseWriter, r *http.Request)) fun
 			"request_handling_started",
 			"uri", r.RequestURI,
 			"method", r.Method,
+			"content-encoding", r.Header.Get("Content-Encoding"),
 		)
 
 		lrw := loggedResponseWriter{ResponseWriter: w}
@@ -82,6 +83,7 @@ func (c *gzipWriter) Header() http.Header {
 }
 
 func (c *gzipWriter) Write(p []byte) (int, error) {
+	// пишем через gzip.Writer для "text/html" и "application/json"
 	contentType := c.Header().Get("Content-Type")
 	if contentType == "text/html" || contentType == "application/json" {
 		return c.zw.Write(p)
@@ -91,6 +93,7 @@ func (c *gzipWriter) Write(p []byte) (int, error) {
 }
 
 func (c *gzipWriter) WriteHeader(statusCode int) {
+	// для "text/html" и "application/json" проставляем заголовок "Content-Encoding: gzip"
 	contentType := c.Header().Get("Content-Type")
 	if contentType == "text/html" || contentType == "application/json" {
 		c.Header().Set("Content-Encoding", "gzip")
@@ -100,6 +103,7 @@ func (c *gzipWriter) WriteHeader(statusCode int) {
 }
 
 func (c *gzipWriter) Close() error {
+	// закрываем только в том случае если писали через gzip.Writer, иначе записывается "GZIP footer" в конец ответа
 	contentType := c.Header().Get("Content-Type")
 	if contentType == "text/html" || contentType == "application/json" {
 		return c.zw.Close()
