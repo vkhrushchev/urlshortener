@@ -1,8 +1,9 @@
 package middleware
 
 import (
-	"fmt"
+	"compress/gzip"
 	"net/http"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -19,25 +20,25 @@ func init() {
 	log = zapLogger.Sugar()
 }
 
-type extendedResponseWriter struct {
+type loggedResponseWriter struct {
 	http.ResponseWriter
 	responseStatus int
 	responseSize   int
 }
 
-func (erw *extendedResponseWriter) Write(data []byte) (int, error) {
-	size, err := erw.ResponseWriter.Write(data)
-	erw.responseSize += size
+func (lrw *loggedResponseWriter) Write(data []byte) (int, error) {
+	size, err := lrw.ResponseWriter.Write(data)
+	lrw.responseSize += size
 
 	return size, err
 }
 
-func (erw *extendedResponseWriter) WriteHeader(statusCode int) {
-	erw.ResponseWriter.WriteHeader(statusCode)
-	erw.responseStatus = statusCode
+func (lrw *loggedResponseWriter) WriteHeader(statusCode int) {
+	lrw.ResponseWriter.WriteHeader(statusCode)
+	lrw.responseStatus = statusCode
 }
 
-func LogRequest(next func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
+func LogRequestMiddleware(next func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Infow(
 			"request_handling_started",
@@ -45,10 +46,10 @@ func LogRequest(next func(w http.ResponseWriter, r *http.Request)) func(w http.R
 			"method", r.Method,
 		)
 
-		erw := extendedResponseWriter{ResponseWriter: w}
+		lrw := loggedResponseWriter{ResponseWriter: w}
 
 		start := time.Now()
-		next(&erw, r)
+		next(&lrw, r)
 		handlingTime := time.Since(start)
 
 		log.Infow(
@@ -58,9 +59,65 @@ func LogRequest(next func(w http.ResponseWriter, r *http.Request)) func(w http.R
 		)
 		log.Infow(
 			"response_data",
-			"size", erw.responseSize,
-			"status", erw.responseStatus)
+			"size", lrw.responseSize,
+			"status", lrw.responseStatus)
+	}
+}
 
-		fmt.Println("<-- request handling")
+type compressResponseWriter struct {
+	http.ResponseWriter
+	gzw *gzip.Writer
+}
+
+func (crw *compressResponseWriter) Write(data []byte) (int, error) {
+	contentType := crw.Header().Get("Content-Type")
+	if contentType == "text/html" || contentType == "application/json" {
+		return crw.gzw.Write(data)
+	}
+
+	return crw.Write(data)
+}
+
+func (crw *compressResponseWriter) WriteHeader(statusCode int) {
+	if statusCode >= 200 && statusCode < 300 {
+		crw.Header().Set("Content-Encoding", "gzip")
+	}
+
+	crw.ResponseWriter.WriteHeader(statusCode)
+}
+
+func GzipMiddleware(next func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		tw := w
+
+		acceptEncoding := r.Header.Get("Accept-Encoding")
+		if strings.Contains(acceptEncoding, "gzip") {
+			crw := &compressResponseWriter{
+				ResponseWriter: w,
+				gzw:            gzip.NewWriter(w),
+			}
+			tw = crw
+
+			defer crw.gzw.Close()
+		}
+
+		contentEncoding := r.Header.Get("Content-Encoding")
+		if strings.Contains(contentEncoding, "gzip") {
+			gzr, err := gzip.NewReader(r.Body)
+			if err != nil {
+				log.Errorw(
+					"decompress_error",
+					"error", err.Error(),
+				)
+
+				tw.WriteHeader(http.StatusInternalServerError)
+				tw.Write([]byte(err.Error()))
+			}
+
+			r.Body = gzr
+			defer r.Body.Close()
+		}
+
+		next(tw, r)
 	}
 }
