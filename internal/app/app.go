@@ -44,8 +44,8 @@ func NewURLShortenerApp(runAddr string, baseURL string) *URLShortenerApp {
 }
 
 func (a *URLShortenerApp) RegisterHandlers() {
-	a.router.Post("/", middleware.LogRequestMiddleware(middleware.GzipMiddleware(a.createShortURLHandler)))
-	a.router.Get("/{id}", middleware.LogRequestMiddleware(middleware.GzipMiddleware(a.getURLHandler)))
+	a.router.Post("/", middleware.LogRequestMiddleware(a.createShortURLHandler))
+	a.router.Get("/{id}", middleware.LogRequestMiddleware(a.getURLHandler))
 	a.router.Post("/api/shorten", middleware.LogRequestMiddleware(middleware.GzipMiddleware(a.createShortURLHandlerAPI)))
 }
 
