@@ -80,7 +80,7 @@ func (a *URLShortenerApp) createShortURLHandler(w http.ResponseWriter, r *http.R
 	}
 
 	urlID := a.createShortURLID()
-	a.urls[urlID] = string(rawBody)
+	a.urls[urlID] = strings.TrimSpace(string(rawBody))
 
 	w.Header().Add("Content-Type", "plain/text")
 	w.WriteHeader(http.StatusCreated)
@@ -119,12 +119,13 @@ func (a *URLShortenerApp) getURLHandler(w http.ResponseWriter, r *http.Request) 
 
 	url, found := a.urls[urlID]
 	if !found {
+		w.Header().Add("Content-Type", "plain/text")
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
 	w.Header().Add("Content-Type", "plain/text")
-	w.Header().Add("Location", url)
+	w.Header().Add("Location", strings.TrimSpace(url))
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 

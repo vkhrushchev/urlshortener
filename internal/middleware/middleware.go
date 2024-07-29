@@ -82,16 +82,30 @@ func (c *gzipWriter) Header() http.Header {
 }
 
 func (c *gzipWriter) Write(p []byte) (int, error) {
-	return c.zw.Write(p)
+	contentType := c.Header().Get("Content-Type")
+	if contentType == "text/html" || contentType == "application/json" {
+		return c.zw.Write(p)
+	}
+
+	return c.w.Write(p)
 }
 
 func (c *gzipWriter) WriteHeader(statusCode int) {
-	c.w.Header().Set("Content-Encoding", "gzip")
+	contentType := c.Header().Get("Content-Type")
+	if contentType == "text/html" || contentType == "application/json" {
+		c.Header().Set("Content-Encoding", "gzip")
+	}
+
 	c.w.WriteHeader(statusCode)
 }
 
 func (c *gzipWriter) Close() error {
-	return c.zw.Close()
+	contentType := c.Header().Get("Content-Type")
+	if contentType == "text/html" || contentType == "application/json" {
+		return c.zw.Close()
+	}
+
+	return nil
 }
 
 type gzipReader struct {
