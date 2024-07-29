@@ -112,6 +112,8 @@ func GzipMiddleware(next func(w http.ResponseWriter, r *http.Request)) func(w ht
 
 				tw.WriteHeader(http.StatusInternalServerError)
 				tw.Write([]byte(err.Error()))
+
+				return
 			}
 
 			r.Body = gzr
