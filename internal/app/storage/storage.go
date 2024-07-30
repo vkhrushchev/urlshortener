@@ -42,18 +42,18 @@ func (s *InMemoryStorage) SaveURL(longURL string) (shortURI string) {
 	return shortURI
 }
 
-type shortUrlJson struct {
+type storageJSON struct {
 	UUID     string `json:"uuid"`
 	ShortURI string `json:"short_url"`
 	LongURL  string `json:"original_url"`
 }
 
-type FileJsonStorage struct {
+type FileJSONStorage struct {
 	InMemoryStorage
 	path string
 }
 
-func NewFileJsonStorage(path string) (*FileJsonStorage, error) {
+func NewFileJSONStorage(path string) (*FileJSONStorage, error) {
 	var file *os.File
 	var fileInfo os.FileInfo
 	var err error
@@ -78,7 +78,7 @@ func NewFileJsonStorage(path string) (*FileJsonStorage, error) {
 
 	defer file.Close()
 
-	fileJSONStorage := &FileJsonStorage{
+	fileJSONStorage := &FileJSONStorage{
 		InMemoryStorage: *NewInMemoryStorage(),
 		path:            path,
 	}
@@ -87,20 +87,20 @@ func NewFileJsonStorage(path string) (*FileJsonStorage, error) {
 	fileScanner := bufio.NewScanner(file)
 	fileScanner.Split(bufio.ScanLines)
 	for fileScanner.Scan() {
-		var shortUrlJson shortUrlJson
-		err = json.Unmarshal(fileScanner.Bytes(), &shortUrlJson)
+		var storageJSON storageJSON
+		err = json.Unmarshal(fileScanner.Bytes(), &storageJSON)
 		if err != nil {
 			err = fmt.Errorf("storage: error when read json from file[%s]: %v", path, err)
 			return nil, err
 		}
 
-		fileJSONStorage.storage[shortUrlJson.ShortURI] = shortUrlJson.LongURL
+		fileJSONStorage.storage[storageJSON.ShortURI] = storageJSON.LongURL
 	}
 
 	return fileJSONStorage, nil
 }
 
-func (s *FileJsonStorage) SaveURL(longURL string) (shortURI string) {
+func (s *FileJSONStorage) SaveURL(longURL string) (shortURI string) {
 	shortURI = s.InMemoryStorage.SaveURL(longURL)
 
 	file, err := os.OpenFile(s.path, os.O_WRONLY|os.O_APPEND, 0644)
@@ -110,14 +110,14 @@ func (s *FileJsonStorage) SaveURL(longURL string) (shortURI string) {
 
 	defer file.Close()
 
-	shorUrlJsonBytes, _ := json.Marshal(&shortUrlJson{
+	storageJSONBytes, _ := json.Marshal(&storageJSON{
 		UUID:     uuid.New().String(),
 		ShortURI: shortURI,
 		LongURL:  longURL,
 	})
 
-	shorUrlJsonBytes = append(shorUrlJsonBytes, '\n')
-	file.Write(shorUrlJsonBytes)
+	storageJSONBytes = append(storageJSONBytes, '\n')
+	file.Write(storageJSONBytes)
 
 	return shortURI
 }

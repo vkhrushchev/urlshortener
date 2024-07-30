@@ -11,7 +11,7 @@ import (
 func main() {
 	parseFlags()
 
-	storage, err := storage.NewFileJsonStorage(flags.fileStoragePathEnv)
+	storage, err := storage.NewFileJSONStorage(flags.fileStoragePathEnv)
 	if err != nil {
 		err = fmt.Errorf("main: ошибка при инициализации FileJsonStorage: %v", err)
 		println(err.Error())
