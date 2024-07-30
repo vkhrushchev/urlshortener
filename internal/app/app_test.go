@@ -55,7 +55,7 @@ func TestURLShortenerApp_getURLHandler(t *testing.T) {
 	app.RegisterHandlers()
 
 	// добавляем подготовленные данные для тестов
-	app.urls["abc"] = "https://google.com"
+	shortURI := app.storage.SaveURL("https://google.com")
 
 	ts := httptest.NewServer(app.router)
 	defer ts.Close()
@@ -68,7 +68,7 @@ func TestURLShortenerApp_getURLHandler(t *testing.T) {
 	}{
 		{
 			name:     "get success",
-			path:     "/abc",
+			path:     "/" + shortURI,
 			status:   http.StatusTemporaryRedirect,
 			location: "https://google.com",
 		},
