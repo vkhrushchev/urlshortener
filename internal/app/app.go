@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/vkhrushchev/urlshortener/internal/app/dto"
+	"github.com/vkhrushchev/urlshortener/internal/app/storage"
 	"github.com/vkhrushchev/urlshortener/internal/middleware"
-	"github.com/vkhrushchev/urlshortener/internal/util"
 
 	"github.com/go-chi/chi/v5"
 
@@ -29,7 +29,7 @@ func init() {
 }
 
 type URLShortenerApp struct {
-	urls    map[string]string
+	storage storage.Storage
 	router  chi.Router
 	runAddr string
 	baseURL string
@@ -37,7 +37,7 @@ type URLShortenerApp struct {
 
 func NewURLShortenerApp(runAddr string, baseURL string) *URLShortenerApp {
 	return &URLShortenerApp{
-		urls:    make(map[string]string),
+		storage: storage.NewInMemoryStorage(),
 		router:  chi.NewRouter(),
 		runAddr: runAddr,
 		baseURL: baseURL,
@@ -80,33 +80,24 @@ func (a *URLShortenerApp) createShortURLHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	urlID := a.createShortURLID()
-	a.urls[urlID] = strings.TrimSpace(bodyBuffer.String())
+	longURL := strings.TrimSpace(bodyBuffer.String())
+	shortURI := a.storage.SaveURL(longURL)
 	log.Infow(
 		"app: short_url_added",
-		"urlID", urlID,
-		"fullURL", a.urls[urlID],
+		"shortURI", shortURI,
+		"longURL", longURL,
 	)
 
 	w.Header().Add("Content-Type", "plain/text")
 	w.WriteHeader(http.StatusCreated)
 
-	shortURL := a.getShortURL(urlID)
+	shortURL := a.getShortURL(shortURI)
 
 	_, err = w.Write([]byte(shortURL))
 	if err != nil {
 		err = fmt.Errorf("app: error writing response: %v", err)
 		log.Errorw(err.Error())
 	}
-}
-
-func (a *URLShortenerApp) createShortURLID() string {
-	urlID := util.RandStringRunes(10)
-	for a.urls[urlID] != "" {
-		urlID = util.RandStringRunes(10)
-	}
-
-	return urlID
 }
 
 func (a *URLShortenerApp) getShortURL(urlID string) string {
@@ -121,9 +112,9 @@ func (a *URLShortenerApp) getShortURL(urlID string) string {
 }
 
 func (a *URLShortenerApp) getURLHandler(w http.ResponseWriter, r *http.Request) {
-	urlID := chi.URLParam(r, "id")
+	shortURI := chi.URLParam(r, "id")
 
-	url, found := a.urls[urlID]
+	longURL, found := a.storage.GetURLByShortURI(shortURI)
 	if !found {
 		w.Header().Add("Content-Type", "plain/text")
 		w.WriteHeader(http.StatusNotFound)
@@ -131,7 +122,7 @@ func (a *URLShortenerApp) getURLHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.Header().Add("Content-Type", "plain/text")
-	w.Header().Add("Location", strings.TrimSpace(url))
+	w.Header().Add("Location", strings.TrimSpace(longURL))
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
@@ -172,10 +163,15 @@ func (a *URLShortenerApp) createShortURLHandlerAPI(w http.ResponseWriter, r *htt
 		return
 	}
 
-	urlID := a.createShortURLID()
-	a.urls[urlID] = apiRequest.URL
+	longURL := apiRequest.URL
+	shortURI := a.storage.SaveURL(longURL)
+	log.Infow(
+		"app: short_url_added",
+		"shortURI", shortURI,
+		"longURL", longURL,
+	)
 
-	apiResponse.Result = a.getShortURL(urlID)
+	apiResponse.Result = a.getShortURL(shortURI)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
