@@ -35,9 +35,9 @@ type URLShortenerApp struct {
 	baseURL string
 }
 
-func NewURLShortenerApp(runAddr string, baseURL string) *URLShortenerApp {
+func NewURLShortenerApp(runAddr string, baseURL string, storage storage.Storage) *URLShortenerApp {
 	return &URLShortenerApp{
-		storage: storage.NewInMemoryStorage(),
+		storage: storage,
 		router:  chi.NewRouter(),
 		runAddr: runAddr,
 		baseURL: baseURL,
