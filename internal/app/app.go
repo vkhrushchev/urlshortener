@@ -20,12 +20,8 @@ import (
 var log *zap.SugaredLogger
 
 func init() {
-	zapLogger, err := zap.NewProduction()
-	if err != nil {
-		panic("cannot initilize zap")
-	}
 
-	log = zapLogger.Sugar()
+	log = zap.Must(zap.NewProduction()).Sugar()
 }
 
 type URLShortenerApp struct {
