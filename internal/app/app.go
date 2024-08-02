@@ -81,7 +81,18 @@ func (a *URLShortenerApp) createShortURLHandler(w http.ResponseWriter, r *http.R
 	}
 
 	longURL := strings.TrimSpace(bodyBuffer.String())
-	shortURI := a.storage.SaveURL(longURL)
+	shortURI, err := a.storage.SaveURL(longURL)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Errorw(err.Error())
+		_, err = w.Write([]byte(err.Error()))
+		if err != nil {
+			log.Errorw(err.Error())
+		}
+
+		return
+	}
+
 	log.Infow(
 		"app: short_url_added",
 		"shortURI", shortURI,
@@ -148,7 +159,7 @@ func (a *URLShortenerApp) createShortURLHandlerAPI(w http.ResponseWriter, r *htt
 
 	var apiRequest dto.APICreateShortURLRequest
 	if err := json.NewDecoder(r.Body).Decode(&apiRequest); err != nil {
-		log.Infow(
+		log.Errorw(
 			"app: Error when decode request body from json",
 			"erorr", err.Error(),
 		)
@@ -164,7 +175,18 @@ func (a *URLShortenerApp) createShortURLHandlerAPI(w http.ResponseWriter, r *htt
 	}
 
 	longURL := apiRequest.URL
-	shortURI := a.storage.SaveURL(longURL)
+	shortURI, err := a.storage.SaveURL(longURL)
+	if err != nil {
+		apiResponse.ErrorStatus = fmt.Sprintf("%d", http.StatusInternalServerError)
+		apiResponse.ErrorDescription = fmt.Sprintf("Error when saving short URL: %s", err.Error())
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(apiResponse)
+
+		return
+	}
+
 	log.Infow(
 		"app: short_url_added",
 		"shortURI", shortURI,

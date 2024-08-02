@@ -9,11 +9,23 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vkhrushchev/urlshortener/internal/util"
+	"go.uber.org/zap"
 )
+
+var log *zap.SugaredLogger
+
+func init() {
+	zapLogger, err := zap.NewProduction()
+	if err != nil {
+		panic("cannot initilize zap")
+	}
+
+	log = zapLogger.Sugar()
+}
 
 type Storage interface {
 	GetURLByShortURI(shortURI string) (longURL string, found bool)
-	SaveURL(longURL string) (shortURI string)
+	SaveURL(longURL string) (shortURI string, err error)
 }
 
 type InMemoryStorage struct {
@@ -31,7 +43,7 @@ func (s *InMemoryStorage) GetURLByShortURI(shortURI string) (longURL string, fou
 	return longURL, found
 }
 
-func (s *InMemoryStorage) SaveURL(longURL string) (shortURI string) {
+func (s *InMemoryStorage) SaveURL(longURL string) (shortURI string, err error) {
 	shortURI = util.RandStringRunes(10)
 	for s.storage[shortURI] != "" {
 		shortURI = util.RandStringRunes(10)
@@ -39,7 +51,7 @@ func (s *InMemoryStorage) SaveURL(longURL string) (shortURI string) {
 
 	s.storage[shortURI] = longURL
 
-	return shortURI
+	return shortURI, nil
 }
 
 type storageJSON struct {
@@ -100,24 +112,60 @@ func NewFileJSONStorage(path string) (*FileJSONStorage, error) {
 	return fileJSONStorage, nil
 }
 
-func (s *FileJSONStorage) SaveURL(longURL string) (shortURI string) {
-	shortURI = s.InMemoryStorage.SaveURL(longURL)
+func (s *FileJSONStorage) SaveURL(longURL string) (shortURI string, err error) {
+	shortURI, err = s.InMemoryStorage.SaveURL(longURL)
+	if err != nil {
+		log.Errorw(
+			"storage: unexpected error when save short URL to InMemeoryStorage",
+			"error", err.Error(),
+		)
+		err = fmt.Errorf("storage: unexpected error when save short URL to InMemeoryStorage: %v", err)
+
+		return "", err
+	}
 
 	file, err := os.OpenFile(s.path, os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
-		println(err.Error())
+		log.Errorw(
+			"storage: error when open file",
+			"path", s.path,
+			"error", err.Error(),
+		)
+		err = fmt.Errorf("storage: error when open file: %v", err)
+
+		return "", err
 	}
 
 	defer file.Close()
 
-	storageJSONBytes, _ := json.Marshal(&storageJSON{
+	storageJSONBytes, err := json.Marshal(&storageJSON{
 		UUID:     uuid.New().String(),
 		ShortURI: shortURI,
 		LongURL:  longURL,
 	})
+	if err != nil {
+		log.Errorw(
+			"storage: error when marshal storageJSON to JSON",
+			"path", s.path,
+			"error", err.Error(),
+		)
+		err = fmt.Errorf("storage: error when marshal storageJSON to JSON: %v", err)
+
+		return "", err
+	}
 
 	storageJSONBytes = append(storageJSONBytes, '\n')
-	file.Write(storageJSONBytes)
+	_, err = file.Write(storageJSONBytes)
+	if err != nil {
+		log.Errorw(
+			"storage: error when write storageJSON to file",
+			"path", s.path,
+			"error", err.Error(),
+		)
+		err = fmt.Errorf("storage: error when write storageJSON to file: %v", err)
 
-	return shortURI
+		return "", err
+	}
+
+	return shortURI, nil
 }

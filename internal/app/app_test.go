@@ -60,7 +60,8 @@ func TestURLShortenerApp_getURLHandler(t *testing.T) {
 	app.RegisterHandlers()
 
 	// добавляем подготовленные данные для тестов
-	shortURI := app.storage.SaveURL("https://google.com")
+	shortURI, err := app.storage.SaveURL("https://google.com")
+	require.NoError(t, err, "unexpected error when save URL")
 
 	ts := httptest.NewServer(app.router)
 	defer ts.Close()
