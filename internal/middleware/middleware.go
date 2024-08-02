@@ -10,11 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var log *zap.SugaredLogger
-
-func init() {
-	log = zap.Must(zap.NewProduction()).Sugar()
-}
+var log = zap.Must(zap.NewProduction()).Sugar()
 
 type loggedResponseWriter struct {
 	http.ResponseWriter

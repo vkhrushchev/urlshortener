@@ -12,11 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var log *zap.SugaredLogger
-
-func init() {
-	log = zap.Must(zap.NewProduction()).Sugar()
-}
+var log = zap.Must(zap.NewProduction()).Sugar()
 
 type Storage interface {
 	GetURLByShortURI(shortURI string) (longURL string, found bool)
