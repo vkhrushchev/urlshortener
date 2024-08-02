@@ -136,7 +136,14 @@ func (s *FileJSONStorage) SaveURL(longURL string) (shortURI string, err error) {
 		return "", err
 	}
 
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		log.Errorw(
+			"storage: error when close file",
+			"path", s.path,
+			"error", err.Error(),
+		)
+	}()
 
 	storageJSONBytes, err := json.Marshal(&storageJSON{
 		UUID:     uuid.New().String(),
