@@ -20,11 +20,6 @@ func main() {
 		log.Fatalf("main: ошибка при инициализации DBLookUp: %v", err)
 	}
 
-	err = dbLookup.InitDB(context.Background())
-	if err != nil {
-		log.Fatalf("main: ошибка при инициализации структуры БД: %v", err)
-	}
-
 	storage := initStorage(dbLookup, flags.fileStoragePath)
 	healthController := controller.NewHealthController(dbLookup)
 
@@ -42,6 +37,10 @@ func initStorage(dbLookup *db.DBLookup, fileStoragePath string) storage.Storage 
 	var err error
 	if flags.databaseDSN != "" {
 		store = storage.NewDBStorage(dbLookup)
+		err = dbLookup.InitDB(context.Background())
+		if err != nil {
+			log.Fatalf("main: ошибка при инициализации структуры БД: %v", err)
+		}
 	}
 
 	if store == nil && flags.fileStoragePath != "" {

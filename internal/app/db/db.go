@@ -12,7 +12,7 @@ import (
 
 var log = zap.Must(zap.NewProduction()).Sugar()
 
-const createShortUrlTableSQL = `create table if not exists short_url
+const createShortURLTableSQL = `create table if not exists short_url
 (
 	uuid varchar(36) not null constraint short_url_pk primary key,
 	short_url varchar(20) not null,
@@ -36,7 +36,7 @@ func NewDBLookup(databaseDSN string) (*DBLookup, error) {
 
 func (d *DBLookup) InitDB(ctx context.Context) error {
 	log.Infow("db: run createShortUrlTableSQL...")
-	_, err := d.db.ExecContext(ctx, createShortUrlTableSQL)
+	_, err := d.db.ExecContext(ctx, createShortURLTableSQL)
 	if err != nil {
 		return fmt.Errorf("db: error when execute createShortUrlTableSQL: %v", err)
 	}

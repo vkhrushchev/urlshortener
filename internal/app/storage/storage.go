@@ -48,7 +48,7 @@ func (s *InMemoryStorage) SaveURL(ctx context.Context, longURL string) (shortURI
 	return shortURI, nil
 }
 
-type shortUrlStorageEntry struct {
+type shortURLStorageEntry struct {
 	UUID     string `json:"uuid"`
 	ShortURI string `json:"short_url"`
 	LongURL  string `json:"original_url"`
@@ -93,7 +93,7 @@ func NewFileJSONStorage(path string) (*FileJSONStorage, error) {
 	fileScanner := bufio.NewScanner(file)
 	fileScanner.Split(bufio.ScanLines)
 	for fileScanner.Scan() {
-		var storageJSON shortUrlStorageEntry
+		var storageJSON shortURLStorageEntry
 		err = json.Unmarshal(fileScanner.Bytes(), &storageJSON)
 		if err != nil {
 			err = fmt.Errorf("storage: error when read json from file[%s]: %v", path, err)
@@ -141,7 +141,7 @@ func (s *FileJSONStorage) SaveURL(ctx context.Context, longURL string) (shortURI
 		}
 	}()
 
-	storageJSONBytes, err := json.Marshal(&shortUrlStorageEntry{
+	storageJSONBytes, err := json.Marshal(&shortURLStorageEntry{
 		UUID:     uuid.New().String(),
 		ShortURI: shortURI,
 		LongURL:  longURL,
