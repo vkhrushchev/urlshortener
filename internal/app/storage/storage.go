@@ -2,12 +2,15 @@ package storage
 
 import (
 	"bufio"
+	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 
 	"github.com/google/uuid"
+	"github.com/vkhrushchev/urlshortener/internal/app/db"
 	"github.com/vkhrushchev/urlshortener/internal/util"
 	"go.uber.org/zap"
 )
@@ -15,8 +18,8 @@ import (
 var log = zap.Must(zap.NewProduction()).Sugar()
 
 type Storage interface {
-	GetURLByShortURI(shortURI string) (longURL string, found bool)
-	SaveURL(longURL string) (shortURI string, err error)
+	GetURLByShortURI(ctx context.Context, shortURI string) (longURL string, found bool, err error)
+	SaveURL(ctx context.Context, longURL string) (shortURI string, err error)
 }
 
 type InMemoryStorage struct {
@@ -29,12 +32,12 @@ func NewInMemoryStorage() *InMemoryStorage {
 	}
 }
 
-func (s *InMemoryStorage) GetURLByShortURI(shortURI string) (longURL string, found bool) {
+func (s *InMemoryStorage) GetURLByShortURI(ctx context.Context, shortURI string) (longURL string, found bool, err error) {
 	longURL, found = s.storage[shortURI]
-	return longURL, found
+	return longURL, found, nil
 }
 
-func (s *InMemoryStorage) SaveURL(longURL string) (shortURI string, err error) {
+func (s *InMemoryStorage) SaveURL(ctx context.Context, longURL string) (shortURI string, err error) {
 	shortURI = util.RandStringRunes(10)
 	for s.storage[shortURI] != "" {
 		shortURI = util.RandStringRunes(10)
@@ -45,7 +48,7 @@ func (s *InMemoryStorage) SaveURL(longURL string) (shortURI string, err error) {
 	return shortURI, nil
 }
 
-type storageJSON struct {
+type shortUrlStorageEntry struct {
 	UUID     string `json:"uuid"`
 	ShortURI string `json:"short_url"`
 	LongURL  string `json:"original_url"`
@@ -90,7 +93,7 @@ func NewFileJSONStorage(path string) (*FileJSONStorage, error) {
 	fileScanner := bufio.NewScanner(file)
 	fileScanner.Split(bufio.ScanLines)
 	for fileScanner.Scan() {
-		var storageJSON storageJSON
+		var storageJSON shortUrlStorageEntry
 		err = json.Unmarshal(fileScanner.Bytes(), &storageJSON)
 		if err != nil {
 			err = fmt.Errorf("storage: error when read json from file[%s]: %v", path, err)
@@ -103,8 +106,8 @@ func NewFileJSONStorage(path string) (*FileJSONStorage, error) {
 	return fileJSONStorage, nil
 }
 
-func (s *FileJSONStorage) SaveURL(longURL string) (shortURI string, err error) {
-	shortURI, err = s.InMemoryStorage.SaveURL(longURL)
+func (s *FileJSONStorage) SaveURL(ctx context.Context, longURL string) (shortURI string, err error) {
+	shortURI, err = s.InMemoryStorage.SaveURL(ctx, longURL)
 	if err != nil {
 		log.Errorw(
 			"storage: unexpected error when save short URL to InMemeoryStorage",
@@ -138,7 +141,7 @@ func (s *FileJSONStorage) SaveURL(longURL string) (shortURI string, err error) {
 		}
 	}()
 
-	storageJSONBytes, err := json.Marshal(&storageJSON{
+	storageJSONBytes, err := json.Marshal(&shortUrlStorageEntry{
 		UUID:     uuid.New().String(),
 		ShortURI: shortURI,
 		LongURL:  longURL,
@@ -164,6 +167,52 @@ func (s *FileJSONStorage) SaveURL(longURL string) (shortURI string, err error) {
 		)
 		err = fmt.Errorf("storage: error when write storageJSON to file: %v", err)
 
+		return "", err
+	}
+
+	return shortURI, nil
+}
+
+type DBStorage struct {
+	dbLookup *db.DBLookup
+}
+
+func NewDBStorage(dbLookup *db.DBLookup) *DBStorage {
+	return &DBStorage{
+		dbLookup: dbLookup,
+	}
+}
+
+func (s *DBStorage) GetURLByShortURI(ctx context.Context, shortURI string) (longURL string, found bool, err error) {
+	db := s.dbLookup.GetDB()
+
+	sqlRow := db.QueryRowContext(ctx, "SELECT su.original_url FROM short_url su WHERE su.short_url = $1", shortURI)
+
+	err = sqlRow.Scan(&longURL)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			return "", false, fmt.Errorf("db: error when get original URL by short URI")
+		}
+		return "", false, nil
+	}
+
+	return longURL, true, nil
+}
+
+func (s *DBStorage) SaveURL(ctx context.Context, longURL string) (shortURI string, err error) {
+	db := s.dbLookup.GetDB()
+
+	shortURI = util.RandStringRunes(10)
+	_, err = db.ExecContext(
+		ctx,
+		"INSERT INTO short_url(uuid, short_url, original_url) VALUES($1, $2, $3)",
+		uuid.New().String(),
+		shortURI,
+		longURL,
+	)
+
+	if err != nil {
+		err = fmt.Errorf("db: error when save short URL: %v", err)
 		return "", err
 	}
 

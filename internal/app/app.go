@@ -83,7 +83,7 @@ func (a *URLShortenerApp) createShortURLHandler(w http.ResponseWriter, r *http.R
 	}
 
 	longURL := strings.TrimSpace(bodyBuffer.String())
-	shortURI, err := a.storage.SaveURL(longURL)
+	shortURI, err := a.storage.SaveURL(r.Context(), longURL)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Errorw(err.Error())
@@ -127,7 +127,18 @@ func (a *URLShortenerApp) getShortURL(urlID string) string {
 func (a *URLShortenerApp) getURLHandler(w http.ResponseWriter, r *http.Request) {
 	shortURI := chi.URLParam(r, "id")
 
-	longURL, found := a.storage.GetURLByShortURI(shortURI)
+	longURL, found, err := a.storage.GetURLByShortURI(r.Context(), shortURI)
+	if err != nil {
+		log.Errorw(
+			"app: error when get original url from storage",
+			"error", err.Error(),
+		)
+
+		w.Header().Add("Content-Type", "plain/text")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	if !found {
 		w.Header().Add("Content-Type", "plain/text")
 		w.WriteHeader(http.StatusNotFound)
@@ -177,7 +188,7 @@ func (a *URLShortenerApp) createShortURLHandlerAPI(w http.ResponseWriter, r *htt
 	}
 
 	longURL := apiRequest.URL
-	shortURI, err := a.storage.SaveURL(longURL)
+	shortURI, err := a.storage.SaveURL(r.Context(), longURL)
 	if err != nil {
 		apiResponse.ErrorStatus = fmt.Sprintf("%d", http.StatusInternalServerError)
 		apiResponse.ErrorDescription = fmt.Sprintf("Error when saving short URL: %s", err.Error())
