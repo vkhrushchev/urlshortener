@@ -1,22 +1,35 @@
 package main
 
 import (
-	"fmt"
 	"github.com/vkhrushchev/urlshortener/internal/app"
-	"os"
+	"github.com/vkhrushchev/urlshortener/internal/app/controller"
+	"github.com/vkhrushchev/urlshortener/internal/app/db"
+	"github.com/vkhrushchev/urlshortener/internal/app/storage"
+	"go.uber.org/zap"
 )
+
+var log = zap.Must(zap.NewProduction()).Sugar()
 
 func main() {
 	parseFlags()
 
-	shortenerApp := app.NewURLShortenerApp(flags.runAddr, flags.baseURL)
-	shortenerApp.RegisterHandlers()
-	err := shortenerApp.Run()
+	storage, err := storage.NewFileJSONStorage(flags.fileStoragePathEnv)
 	if err != nil {
-		err = fmt.Errorf("main: ошибка при запуске urlshortener: %v", err)
-		if err != nil {
-			println(err.Error())
-		}
-		os.Exit(1)
+		log.Fatalf("main: ошибка при инициализации FileJsonStorage: %v", err)
+	}
+
+	dbLookup, err := db.NewDBLookup(flags.databaseDSN)
+	if err != nil {
+		log.Fatalf("main: ошибка при инициализации DBLookUp: %v", err)
+	}
+
+	healthController := controller.NewHealthController(dbLookup)
+
+	shortenerApp := app.NewURLShortenerApp(flags.runAddr, flags.baseURL, storage, *healthController)
+
+	shortenerApp.RegisterHandlers()
+	err = shortenerApp.Run()
+	if err != nil {
+		log.Fatalf("main: ошибка при инициализации FileJsonStorage: %v", err)
 	}
 }
