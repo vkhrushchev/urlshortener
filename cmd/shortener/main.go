@@ -2,6 +2,8 @@ package main
 
 import (
 	"github.com/vkhrushchev/urlshortener/internal/app"
+	"github.com/vkhrushchev/urlshortener/internal/app/controller"
+	"github.com/vkhrushchev/urlshortener/internal/app/db"
 	"github.com/vkhrushchev/urlshortener/internal/app/storage"
 	"go.uber.org/zap"
 )
@@ -16,7 +18,14 @@ func main() {
 		log.Fatalf("main: ошибка при инициализации FileJsonStorage: %v", err)
 	}
 
-	shortenerApp := app.NewURLShortenerApp(flags.runAddr, flags.baseURL, storage)
+	dbLookup, err := db.NewDBLookup(flags.databaseDSN)
+	if err != nil {
+		log.Fatalf("main: ошибка при инициализации DBLookUp: %v", err)
+	}
+
+	healthController := controller.NewHealthController(dbLookup)
+
+	shortenerApp := app.NewURLShortenerApp(flags.runAddr, flags.baseURL, storage, *healthController)
 
 	shortenerApp.RegisterHandlers()
 	err = shortenerApp.Run()

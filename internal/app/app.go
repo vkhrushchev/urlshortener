@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/vkhrushchev/urlshortener/internal/app/controller"
 	"github.com/vkhrushchev/urlshortener/internal/app/dto"
 	"github.com/vkhrushchev/urlshortener/internal/app/storage"
 	"github.com/vkhrushchev/urlshortener/internal/middleware"
@@ -20,18 +21,24 @@ import (
 var log = zap.Must(zap.NewProduction()).Sugar()
 
 type URLShortenerApp struct {
-	storage storage.Storage
-	router  chi.Router
-	runAddr string
-	baseURL string
+	storage          storage.Storage
+	healthController controller.HealthController
+	router           chi.Router
+	runAddr          string
+	baseURL          string
 }
 
-func NewURLShortenerApp(runAddr string, baseURL string, storage storage.Storage) *URLShortenerApp {
+func NewURLShortenerApp(
+	runAddr string,
+	baseURL string,
+	storage storage.Storage,
+	healthController controller.HealthController) *URLShortenerApp {
 	return &URLShortenerApp{
-		storage: storage,
-		router:  chi.NewRouter(),
-		runAddr: runAddr,
-		baseURL: baseURL,
+		storage:          storage,
+		healthController: healthController,
+		router:           chi.NewRouter(),
+		runAddr:          runAddr,
+		baseURL:          baseURL,
 	}
 }
 
@@ -39,11 +46,15 @@ func (a *URLShortenerApp) RegisterHandlers() {
 	a.router.Post("/", middleware.LogRequestMiddleware(middleware.GzipMiddleware(a.createShortURLHandler)))
 	a.router.Get("/{id}", middleware.LogRequestMiddleware(middleware.GzipMiddleware(a.getURLHandler)))
 	a.router.Post("/api/shorten", middleware.LogRequestMiddleware(middleware.GzipMiddleware(a.createShortURLHandlerAPI)))
+	a.router.Get("/ping", a.healthController.Ping)
 }
 
 func (a *URLShortenerApp) Run() error {
-	fmt.Printf("Listening on %s\n", a.runAddr)
-	fmt.Printf("BaseURL: %s\n", a.baseURL)
+	log.Infow(
+		"app: URLShortenerApp stating",
+		"runAddr", a.runAddr,
+		"baseURL", a.baseURL,
+	)
 
 	err := http.ListenAndServe(a.runAddr, a.router)
 	if err != nil {
