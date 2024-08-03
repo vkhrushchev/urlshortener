@@ -10,14 +10,17 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/vkhrushchev/urlshortener/internal/app/controller"
 	"github.com/vkhrushchev/urlshortener/internal/app/dto"
 	"github.com/vkhrushchev/urlshortener/internal/app/storage"
 )
 
 func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
+	// TODO mock healthController
+	healthController := controller.NewHealthController(nil)
 	storage := storage.NewInMemoryStorage()
 
-	app := NewURLShortenerApp("", "", storage)
+	app := NewURLShortenerApp("", "", storage, *healthController)
 	app.RegisterHandlers()
 
 	ts := httptest.NewServer(app.router)
@@ -54,9 +57,11 @@ func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
 }
 
 func TestURLShortenerApp_getURLHandler(t *testing.T) {
+	// TODO mock healthController
+	healthController := controller.NewHealthController(nil)
 	storage := storage.NewInMemoryStorage()
 
-	app := NewURLShortenerApp("", "", storage)
+	app := NewURLShortenerApp("", "", storage, *healthController)
 	app.RegisterHandlers()
 
 	// добавляем подготовленные данные для тестов
@@ -105,9 +110,11 @@ func TestURLShortenerApp_getURLHandler(t *testing.T) {
 }
 
 func TestURLShortnerApp_createShortURLHandlerAPI(t *testing.T) {
+	// TODO mock healthController
+	healthController := controller.NewHealthController(nil)
 	storage := storage.NewInMemoryStorage()
 
-	app := NewURLShortenerApp("", "", storage)
+	app := NewURLShortenerApp("", "", storage, *healthController)
 	app.RegisterHandlers()
 
 	ts := httptest.NewServer(app.router)
