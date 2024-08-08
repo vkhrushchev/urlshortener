@@ -22,10 +22,10 @@ func main() {
 
 	storage := initStorage(dbLookup, flags.fileStoragePath)
 	appController := controller.NewAppController(flags.baseURL, storage)
-	apiController := controller.NewApiController(flags.baseURL, storage)
+	apiController := controller.NewAPIController(flags.baseURL, storage)
 	healthController := controller.NewHealthController(dbLookup)
 
-	shortenerApp := app.NewURLShortenerApp(flags.runAddr, *appController, *apiController, *healthController)
+	shortenerApp := app.NewURLShortenerApp(flags.runAddr, appController, apiController, healthController)
 
 	shortenerApp.RegisterHandlers()
 	err = shortenerApp.Run()

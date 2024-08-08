@@ -10,19 +10,19 @@ import (
 	"github.com/vkhrushchev/urlshortener/internal/util"
 )
 
-type ApiController struct {
+type APIController struct {
 	baseURL string
 	storage storage.Storage
 }
 
-func NewApiController(baseURL string, storage storage.Storage) *ApiController {
-	return &ApiController{
+func NewAPIController(baseURL string, storage storage.Storage) *APIController {
+	return &APIController{
 		baseURL: baseURL,
 		storage: storage,
 	}
 }
 
-func (c *ApiController) CreateShortURLHandlerAPI(w http.ResponseWriter, r *http.Request) {
+func (c *APIController) CreateShortURLHandlerAPI(w http.ResponseWriter, r *http.Request) {
 	apiResponse := &dto.APICreateShortURLResponse{}
 
 	contentType := r.Header.Get("Content-Type")

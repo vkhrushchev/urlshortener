@@ -14,18 +14,18 @@ import (
 var log = zap.Must(zap.NewProduction()).Sugar()
 
 type URLShortenerApp struct {
-	appController    controller.AppContoller
-	apiController    controller.ApiController
-	healthController controller.HealthController
+	appController    *controller.AppContoller
+	apiController    *controller.APIController
+	healthController *controller.HealthController
 	router           chi.Router
 	runAddr          string
 }
 
 func NewURLShortenerApp(
 	runAddr string,
-	appController controller.AppContoller,
-	apiController controller.ApiController,
-	healthController controller.HealthController) *URLShortenerApp {
+	appController *controller.AppContoller,
+	apiController *controller.APIController,
+	healthController *controller.HealthController) *URLShortenerApp {
 	return &URLShortenerApp{
 		appController:    appController,
 		apiController:    apiController,

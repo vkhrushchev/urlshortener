@@ -19,11 +19,11 @@ import (
 func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
 	storage := storage.NewInMemoryStorage()
 	appController := controller.NewAppController("", storage)
-	apiController := controller.NewApiController("", storage)
+	apiController := controller.NewAPIController("", storage)
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
 
-	app := NewURLShortenerApp("", *appController, *apiController, *healthController)
+	app := NewURLShortenerApp("", appController, apiController, healthController)
 	app.RegisterHandlers()
 
 	ts := httptest.NewServer(app.router)
@@ -62,11 +62,11 @@ func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
 func TestURLShortenerApp_getURLHandler(t *testing.T) {
 	storage := storage.NewInMemoryStorage()
 	appController := controller.NewAppController("", storage)
-	apiController := controller.NewApiController("", storage)
+	apiController := controller.NewAPIController("", storage)
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
 
-	app := NewURLShortenerApp("", *appController, *apiController, *healthController)
+	app := NewURLShortenerApp("", appController, apiController, healthController)
 	app.RegisterHandlers()
 
 	// добавляем подготовленные данные для тестов
@@ -117,11 +117,11 @@ func TestURLShortenerApp_getURLHandler(t *testing.T) {
 func TestURLShortnerApp_createShortURLHandlerAPI(t *testing.T) {
 	storage := storage.NewInMemoryStorage()
 	appController := controller.NewAppController("", storage)
-	apiController := controller.NewApiController("", storage)
+	apiController := controller.NewAPIController("", storage)
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
 
-	app := NewURLShortenerApp("", *appController, *apiController, *healthController)
+	app := NewURLShortenerApp("", appController, apiController, healthController)
 	app.RegisterHandlers()
 
 	ts := httptest.NewServer(app.router)
