@@ -17,11 +17,13 @@ import (
 )
 
 func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
+	storage := storage.NewInMemoryStorage()
+	appController := controller.NewAppController("", storage)
+	apiController := controller.NewApiController("", storage)
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
-	storage := storage.NewInMemoryStorage()
 
-	app := NewURLShortenerApp("", "", storage, *healthController)
+	app := NewURLShortenerApp("", *appController, *apiController, *healthController)
 	app.RegisterHandlers()
 
 	ts := httptest.NewServer(app.router)
@@ -33,7 +35,7 @@ func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
 		status      int
 	}{
 		{
-			name:        "get success",
+			name:        "create success",
 			requestBody: "https://google.com",
 			status:      http.StatusCreated,
 		},
@@ -58,15 +60,17 @@ func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
 }
 
 func TestURLShortenerApp_getURLHandler(t *testing.T) {
+	storage := storage.NewInMemoryStorage()
+	appController := controller.NewAppController("", storage)
+	apiController := controller.NewApiController("", storage)
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
-	storage := storage.NewInMemoryStorage()
 
-	app := NewURLShortenerApp("", "", storage, *healthController)
+	app := NewURLShortenerApp("", *appController, *apiController, *healthController)
 	app.RegisterHandlers()
 
 	// добавляем подготовленные данные для тестов
-	shortURI, err := app.storage.SaveURL(context.Background(), "https://google.com")
+	shortURI, err := storage.SaveURL(context.Background(), "https://google.com")
 	require.NoError(t, err, "unexpected error when save URL")
 
 	ts := httptest.NewServer(app.router)
@@ -111,11 +115,13 @@ func TestURLShortenerApp_getURLHandler(t *testing.T) {
 }
 
 func TestURLShortnerApp_createShortURLHandlerAPI(t *testing.T) {
+	storage := storage.NewInMemoryStorage()
+	appController := controller.NewAppController("", storage)
+	apiController := controller.NewApiController("", storage)
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
-	storage := storage.NewInMemoryStorage()
 
-	app := NewURLShortenerApp("", "", storage, *healthController)
+	app := NewURLShortenerApp("", *appController, *apiController, *healthController)
 	app.RegisterHandlers()
 
 	ts := httptest.NewServer(app.router)

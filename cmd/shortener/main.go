@@ -17,13 +17,15 @@ func main() {
 
 	dbLookup, err := db.NewDBLookup(flags.databaseDSN)
 	if err != nil {
-		log.Fatalf("main: ошибка при инициализации DBLookUp: %v", err)
+		log.Fatalf("main: ошибка при инициализации DBLookup: %v", err)
 	}
 
 	storage := initStorage(dbLookup, flags.fileStoragePath)
+	appController := controller.NewAppController(flags.baseURL, storage)
+	apiController := controller.NewApiController(flags.baseURL, storage)
 	healthController := controller.NewHealthController(dbLookup)
 
-	shortenerApp := app.NewURLShortenerApp(flags.runAddr, flags.baseURL, storage, *healthController)
+	shortenerApp := app.NewURLShortenerApp(flags.runAddr, *appController, *apiController, *healthController)
 
 	shortenerApp.RegisterHandlers()
 	err = shortenerApp.Run()
