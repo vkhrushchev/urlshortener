@@ -6,9 +6,10 @@ import (
 )
 
 type Config struct {
-	runAddr            string
-	baseURL            string
-	fileStoragePathEnv string
+	runAddr         string
+	baseURL         string
+	fileStoragePath string
+	databaseDSN     string
 }
 
 var flags = new(Config)
@@ -16,7 +17,8 @@ var flags = new(Config)
 func parseFlags() {
 	flag.StringVar(&flags.runAddr, "a", "localhost:8080", "HTTP listen address")
 	flag.StringVar(&flags.baseURL, "b", "http://localhost:8080/", "Base URL")
-	flag.StringVar(&flags.fileStoragePathEnv, "f", "./short_url_json_storage", "Short URL JSON storage")
+	flag.StringVar(&flags.fileStoragePath, "f", "", "Short URL JSON storage")
+	flag.StringVar(&flags.databaseDSN, "d", "", "Database DSN")
 
 	flag.Parse()
 
@@ -29,6 +31,10 @@ func parseFlags() {
 	}
 
 	if fileStoragePathEnv := os.Getenv("FILE_STORAGE_PATH"); fileStoragePathEnv != "" {
-		flags.fileStoragePathEnv = fileStoragePathEnv
+		flags.fileStoragePath = fileStoragePathEnv
+	}
+
+	if databaseDSNEnv := os.Getenv("DATABASE_DSN"); databaseDSNEnv != "" {
+		flags.databaseDSN = databaseDSNEnv
 	}
 }

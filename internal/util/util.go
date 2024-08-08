@@ -2,6 +2,7 @@ package util
 
 import (
 	"math/rand"
+	"strings"
 	"time"
 )
 
@@ -17,4 +18,15 @@ func RandStringRunes(n int) string {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
 	return string(b)
+}
+
+func GetShortURL(baseURL string, urlID string) string {
+	var shortURL string
+	if strings.HasSuffix(baseURL, "/") {
+		shortURL = baseURL + urlID
+	} else {
+		shortURL = baseURL + "/" + urlID
+	}
+
+	return shortURL
 }
