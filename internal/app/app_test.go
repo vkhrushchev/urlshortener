@@ -184,7 +184,7 @@ func TestURLShortnerApp_createShortURLHandlerAPI(t *testing.T) {
 			var apiResponse dto.APICreateShortURLResponse
 			err = json.Unmarshal([]byte(responseBody), &apiResponse)
 			if err != nil {
-				require.NoError(t, err, "app_test: error when marshall dto.ApiCreateShortURLRequest: %v", err)
+				require.NoError(t, err, "app_test: error when unmarshall dto.APICreateShortURLResponse: %v", err)
 			}
 
 			if statusCode == http.StatusCreated {
@@ -197,6 +197,100 @@ func TestURLShortnerApp_createShortURLHandlerAPI(t *testing.T) {
 				assert.NotEmpty(t, apiResponse.ErrorStatus)
 				assert.NotEmpty(t, apiResponse.ErrorDescription)
 				assert.Empty(t, apiResponse.Result)
+			}
+		})
+	}
+}
+
+func TestURLShortnerApp_createShortURLBatchHandlerAPI(t *testing.T) {
+	storage := storage.NewInMemoryStorage()
+	appController := controller.NewAppController("", storage)
+	apiController := controller.NewAPIController("", storage)
+	// TODO mock healthController
+	healthController := controller.NewHealthController(nil)
+
+	app := NewURLShortenerApp("", appController, apiController, healthController)
+	app.RegisterHandlers()
+
+	ts := httptest.NewServer(app.router)
+	defer ts.Close()
+
+	testCases := []struct {
+		name               string
+		contentType        string
+		apiRequestRaw      string
+		apiRequest         dto.APICreateShortURLBatchRequest
+		expectedStatusCode int
+	}{
+		{
+			name:        "success",
+			contentType: "application/json",
+			apiRequest: dto.APICreateShortURLBatchRequest{
+				dto.APICreateShortURLBatchRequestEntry{
+					CorrelationID: "96f178e8-e1ae-4744-9501-69da1fba5def",
+					OriginalURL:   "http://www.google.com",
+				},
+				dto.APICreateShortURLBatchRequestEntry{
+					CorrelationID: "3f6e4e67-a5ba-4d6c-b76a-cd56d30499d9",
+					OriginalURL:   "http://ya.ru",
+				},
+			},
+			expectedStatusCode: http.StatusCreated,
+		},
+		{
+			name:        "wrong content type",
+			contentType: "plain/text",
+			apiRequest: dto.APICreateShortURLBatchRequest{
+				dto.APICreateShortURLBatchRequestEntry{
+					CorrelationID: "96f178e8-e1ae-4744-9501-69da1fba5def",
+					OriginalURL:   "http://www.google.com",
+				},
+				dto.APICreateShortURLBatchRequestEntry{
+					CorrelationID: "3f6e4e67-a5ba-4d6c-b76a-cd56d30499d9",
+					OriginalURL:   "http://ya.ru",
+				},
+			},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:               "bad json",
+			contentType:        "application/json",
+			apiRequestRaw:      "{",
+			expectedStatusCode: http.StatusBadRequest,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var requestBodyBytes []byte
+			var err error
+			if tc.apiRequest != nil {
+				requestBodyBytes, err = json.Marshal(tc.apiRequest)
+				require.NoError(t, err, "app_test: error when marshall dto.APICreateShortURLBatchRequest: %v", err)
+			} else if tc.apiRequestRaw != "" {
+				requestBodyBytes = []byte(tc.apiRequestRaw)
+			}
+
+			statusCode, headers, responseBody := executeRequest(
+				t,
+				ts,
+				http.MethodPost,
+				"/api/shorten/batch",
+				string(requestBodyBytes),
+				tc.contentType,
+			)
+
+			assert.Equal(t, tc.expectedStatusCode, statusCode)
+
+			if statusCode == http.StatusCreated {
+				var apiResponse dto.APICreateShortURLBatchResponse
+				err = json.Unmarshal([]byte(responseBody), &apiResponse)
+				if err != nil {
+					require.NoError(t, err, "app_test: error when unmarshall dto.APICreateShortURLBatchResponse: %v", err)
+				}
+
+				assert.Equal(t, "application/json", headers.Get("Content-Type"))
+				assert.Equal(t, 2, len(apiResponse))
 			}
 		})
 	}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vkhrushchev/urlshortener/internal/app/db"
+	"github.com/vkhrushchev/urlshortener/internal/app/dto"
 	"github.com/vkhrushchev/urlshortener/internal/util"
 	"go.uber.org/zap"
 )
@@ -20,6 +21,7 @@ var log = zap.Must(zap.NewProduction()).Sugar()
 type Storage interface {
 	GetURLByShortURI(ctx context.Context, shortURI string) (longURL string, found bool, err error)
 	SaveURL(ctx context.Context, longURL string) (shortURI string, err error)
+	SaveURLBatch(ctx context.Context, entries []*dto.StorageShortURLEntry) ([]*dto.StorageShortURLEntry, error)
 }
 
 type InMemoryStorage struct {
@@ -48,10 +50,17 @@ func (s *InMemoryStorage) SaveURL(ctx context.Context, longURL string) (shortURI
 	return shortURI, nil
 }
 
-type shortURLStorageEntry struct {
-	UUID     string `json:"uuid"`
-	ShortURI string `json:"short_url"`
-	LongURL  string `json:"original_url"`
+func (s *InMemoryStorage) SaveURLBatch(ctx context.Context, entries []*dto.StorageShortURLEntry) ([]*dto.StorageShortURLEntry, error) {
+	for _, entry := range entries {
+		shortURI, err := s.SaveURL(ctx, entry.LongURL)
+		if err != nil {
+			return nil, err
+		}
+
+		entry.ShortURI = shortURI
+	}
+
+	return entries, nil
 }
 
 type FileJSONStorage struct {
@@ -93,14 +102,14 @@ func NewFileJSONStorage(path string) (*FileJSONStorage, error) {
 	fileScanner := bufio.NewScanner(file)
 	fileScanner.Split(bufio.ScanLines)
 	for fileScanner.Scan() {
-		var storageJSON shortURLStorageEntry
-		err = json.Unmarshal(fileScanner.Bytes(), &storageJSON)
+		var shortURLEntry dto.StorageShortURLEntry
+		err = json.Unmarshal(fileScanner.Bytes(), &shortURLEntry)
 		if err != nil {
 			err = fmt.Errorf("storage: error when read json from file[%s]: %v", path, err)
 			return nil, err
 		}
 
-		fileJSONStorage.storage[storageJSON.ShortURI] = storageJSON.LongURL
+		fileJSONStorage.storage[shortURLEntry.ShortURI] = shortURLEntry.LongURL
 	}
 
 	return fileJSONStorage, nil
@@ -141,7 +150,7 @@ func (s *FileJSONStorage) SaveURL(ctx context.Context, longURL string) (shortURI
 		}
 	}()
 
-	storageJSONBytes, err := json.Marshal(&shortURLStorageEntry{
+	storageJSONBytes, err := json.Marshal(&dto.StorageShortURLEntry{
 		UUID:     uuid.New().String(),
 		ShortURI: shortURI,
 		LongURL:  longURL,
@@ -171,6 +180,19 @@ func (s *FileJSONStorage) SaveURL(ctx context.Context, longURL string) (shortURI
 	}
 
 	return shortURI, nil
+}
+
+func (s *FileJSONStorage) SaveURLBatch(ctx context.Context, entries []*dto.StorageShortURLEntry) ([]*dto.StorageShortURLEntry, error) {
+	for _, entry := range entries {
+		shortURI, err := s.SaveURL(ctx, entry.LongURL)
+		if err != nil {
+			return nil, err
+		}
+
+		entry.ShortURI = shortURI
+	}
+
+	return entries, nil
 }
 
 type DBStorage struct {
@@ -217,4 +239,18 @@ func (s *DBStorage) SaveURL(ctx context.Context, longURL string) (shortURI strin
 	}
 
 	return shortURI, nil
+}
+
+func (s *DBStorage) SaveURLBatch(ctx context.Context, entries []*dto.StorageShortURLEntry) ([]*dto.StorageShortURLEntry, error) {
+	// TODO change it
+	for _, entry := range entries {
+		shortURI, err := s.SaveURL(ctx, entry.LongURL)
+		if err != nil {
+			return nil, err
+		}
+
+		entry.ShortURI = shortURI
+	}
+
+	return entries, nil
 }

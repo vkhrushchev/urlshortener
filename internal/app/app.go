@@ -44,7 +44,10 @@ func (a *URLShortenerApp) RegisterHandlers() {
 		middleware.LogRequestMiddleware(middleware.GzipMiddleware(a.appController.GetURLHandler)))
 	a.router.Post(
 		"/api/shorten",
-		middleware.LogRequestMiddleware(middleware.GzipMiddleware(a.apiController.CreateShortURLHandlerAPI)))
+		middleware.LogRequestMiddleware(middleware.GzipMiddleware(a.apiController.CreateShortURLHandler)))
+	a.router.Post(
+		"/api/shorten/batch",
+		middleware.LogRequestMiddleware(middleware.GzipMiddleware(a.apiController.CreateShortURLBatchHandler)))
 	a.router.Get(
 		"/ping",
 		a.healthController.Ping)

@@ -22,7 +22,7 @@ func NewAPIController(baseURL string, storage storage.Storage) *APIController {
 	}
 }
 
-func (c *APIController) CreateShortURLHandlerAPI(w http.ResponseWriter, r *http.Request) {
+func (c *APIController) CreateShortURLHandler(w http.ResponseWriter, r *http.Request) {
 	apiResponse := &dto.APICreateShortURLResponse{}
 
 	contentType := r.Header.Get("Content-Type")
@@ -79,6 +79,66 @@ func (c *APIController) CreateShortURLHandlerAPI(w http.ResponseWriter, r *http.
 	)
 
 	apiResponse.Result = util.GetShortURL(c.baseURL, shortURI)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(apiResponse)
+}
+
+func (c *APIController) CreateShortURLBatchHandler(w http.ResponseWriter, r *http.Request) {
+	contentType := r.Header.Get("Content-Type")
+	if contentType != "application/json" {
+		log.Infow(
+			"app: not supported \"Content-Type\" header",
+			"Content-Type", contentType,
+		)
+
+		w.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	var apiRequest dto.APICreateShortURLBatchRequest
+	if err := json.NewDecoder(r.Body).Decode(&apiRequest); err != nil {
+		log.Errorw(
+			"app: error when decode request body from json",
+			"erorr", err.Error(),
+		)
+
+		w.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	storageShortURLEntries := make([]*dto.StorageShortURLEntry, 0, len(apiRequest))
+	for _, apiShortURLEntry := range apiRequest {
+		storageShortURLEntry := &dto.StorageShortURLEntry{
+			UUID:    apiShortURLEntry.CorrelationID,
+			LongURL: apiShortURLEntry.OriginalURL,
+		}
+		storageShortURLEntries = append(storageShortURLEntries, storageShortURLEntry)
+	}
+
+	storageShortURLEntries, err := c.storage.SaveURLBatch(r.Context(), storageShortURLEntries)
+	if err != nil {
+		log.Errorw(
+			"app: error when store batch of URLs",
+			"erorr", err.Error(),
+		)
+
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	apiResponse := make(dto.APICreateShortURLBatchResponse, 0, len(apiRequest))
+	for _, storageShortURLEntry := range storageShortURLEntries {
+		apiResponseEntry := dto.APICreateShortURLBatchResponseEntry{
+			CorrelationID: storageShortURLEntry.UUID,
+			ShortURL:      util.GetShortURL(c.baseURL, storageShortURLEntry.ShortURI),
+		}
+		apiResponse = append(apiResponse, apiResponseEntry)
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
