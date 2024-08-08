@@ -1,17 +1,23 @@
 package app
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/vkhrushchev/urlshortener/internal/app/dto"
+	"github.com/vkhrushchev/urlshortener/internal/app/storage"
 )
 
 func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
-	app := NewURLShortenerApp("", "")
+	storage := storage.NewInMemoryStorage()
+
+	app := NewURLShortenerApp("", "", storage)
 	app.RegisterHandlers()
 
 	ts := httptest.NewServer(app.router)
@@ -30,7 +36,14 @@ func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			statusCode, _, responseBody := executeRequest(t, ts, http.MethodPost, "/", tt.requestBody)
+			statusCode, _, responseBody := executeRequest(
+				t,
+				ts,
+				http.MethodPost,
+				"/",
+				tt.requestBody,
+				"plain/text",
+			)
 
 			assert.Equal(t, tt.status, statusCode)
 			if statusCode == http.StatusCreated {
@@ -41,11 +54,14 @@ func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
 }
 
 func TestURLShortenerApp_getURLHandler(t *testing.T) {
-	app := NewURLShortenerApp("", "")
+	storage := storage.NewInMemoryStorage()
+
+	app := NewURLShortenerApp("", "", storage)
 	app.RegisterHandlers()
 
 	// добавляем подготовленные данные для тестов
-	app.urls["abc"] = "https://google.com"
+	shortURI, err := app.storage.SaveURL("https://google.com")
+	require.NoError(t, err, "unexpected error when save URL")
 
 	ts := httptest.NewServer(app.router)
 	defer ts.Close()
@@ -58,7 +74,7 @@ func TestURLShortenerApp_getURLHandler(t *testing.T) {
 	}{
 		{
 			name:     "get success",
-			path:     "/abc",
+			path:     "/" + shortURI,
 			status:   http.StatusTemporaryRedirect,
 			location: "https://google.com",
 		},
@@ -70,7 +86,14 @@ func TestURLShortenerApp_getURLHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			statusCode, headers, responseBody := executeRequest(t, ts, http.MethodGet, tt.path, "")
+			statusCode, headers, responseBody := executeRequest(
+				t,
+				ts,
+				http.MethodGet,
+				tt.path,
+				"",
+				"plain/text",
+			)
 
 			assert.Equal(t, tt.status, statusCode)
 			assert.Empty(t, responseBody)
@@ -81,9 +104,102 @@ func TestURLShortenerApp_getURLHandler(t *testing.T) {
 	}
 }
 
-func executeRequest(t *testing.T, ts *httptest.Server, method string, path string, requestBody string) (int, http.Header, string) {
+func TestURLShortnerApp_createShortURLHandlerAPI(t *testing.T) {
+	storage := storage.NewInMemoryStorage()
+
+	app := NewURLShortenerApp("", "", storage)
+	app.RegisterHandlers()
+
+	ts := httptest.NewServer(app.router)
+	defer ts.Close()
+
+	testCases := []struct {
+		name               string
+		contentType        string
+		apiRequestRaw      string
+		apiRequest         *dto.APICreateShortURLRequest
+		expectedStatusCode int
+	}{
+		{
+			name:        "success",
+			contentType: "application/json",
+			apiRequest: &dto.APICreateShortURLRequest{
+				URL: "https://google.com",
+			},
+			expectedStatusCode: http.StatusCreated,
+		},
+		{
+			name:        "wrong content type",
+			contentType: "plain/text",
+			apiRequest: &dto.APICreateShortURLRequest{
+				URL: "https://google.com",
+			},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:               "bad json",
+			contentType:        "application/json",
+			apiRequestRaw:      "{",
+			expectedStatusCode: http.StatusBadRequest,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var requestBodyBytes []byte
+			var err error
+			if tc.apiRequest != nil {
+				requestBodyBytes, err = json.Marshal(tc.apiRequest)
+				require.NoError(t, err, "app_test: error when marshall dto.ApiCreateShortURLRequest: %v", err)
+			} else if tc.apiRequestRaw != "" {
+				requestBodyBytes = []byte(tc.apiRequestRaw)
+			}
+
+			statusCode, headers, responseBody := executeRequest(
+				t,
+				ts,
+				http.MethodPost,
+				"/api/shorten",
+				string(requestBodyBytes),
+				tc.contentType,
+			)
+
+			assert.Equal(t, tc.expectedStatusCode, statusCode)
+			assert.Equal(t, "application/json", headers.Get("Content-Type"))
+
+			var apiResponse dto.APICreateShortURLResponse
+			err = json.Unmarshal([]byte(responseBody), &apiResponse)
+			if err != nil {
+				require.NoError(t, err, "app_test: error when marshall dto.ApiCreateShortURLRequest: %v", err)
+			}
+
+			if statusCode == http.StatusCreated {
+				assert.Empty(t, apiResponse.ErrorStatus)
+				assert.Empty(t, apiResponse.ErrorDescription)
+				assert.NotEmpty(t, apiResponse.Result)
+			}
+
+			if statusCode == http.StatusBadRequest {
+				assert.NotEmpty(t, apiResponse.ErrorStatus)
+				assert.NotEmpty(t, apiResponse.ErrorDescription)
+				assert.Empty(t, apiResponse.Result)
+			}
+		})
+	}
+}
+
+func executeRequest(
+	t *testing.T,
+	ts *httptest.Server,
+	method string,
+	path string,
+	requestBody string,
+	contentType string,
+) (int, http.Header, string) {
 	request, err := http.NewRequest(method, ts.URL+path, strings.NewReader(requestBody))
 	require.NoError(t, err)
+
+	request.Header.Add("Content-Type", contentType)
 
 	// отключаем редирект
 	ts.Client().CheckRedirect = func(req *http.Request, via []*http.Request) error {
