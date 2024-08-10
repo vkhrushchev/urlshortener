@@ -3,13 +3,18 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vkhrushchev/urlshortener/internal/app/db"
 	"github.com/vkhrushchev/urlshortener/internal/app/dto"
 	"github.com/vkhrushchev/urlshortener/internal/util"
 )
+
+var ErrConflictOnUniqueConstraint = errors.New("storage_db: unique constraint conflict")
 
 type DBStorage struct {
 	dbLookup *db.DBLookup
@@ -50,6 +55,25 @@ func (s *DBStorage) SaveURL(ctx context.Context, longURL string) (shortURI strin
 	)
 
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == pgerrcode.UniqueViolation {
+				row := db.QueryRowContext(ctx, "SELECT su.short_url FROM short_url su WHERE su.original_url = $1", longURL)
+				if row.Err() != nil {
+					err = fmt.Errorf("db: error when search existed short URL: %v", err)
+					return "", err
+				}
+
+				err = row.Scan(&shortURI)
+				if err != nil {
+					err = fmt.Errorf("db: error when scan existed short URL: %v", err)
+					return "", err
+				}
+
+				return shortURI, ErrConflictOnUniqueConstraint
+			}
+		}
+
 		err = fmt.Errorf("db: error when save short URL: %v", err)
 		return "", err
 	}

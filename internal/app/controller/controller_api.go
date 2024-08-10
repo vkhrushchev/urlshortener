@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -61,12 +62,12 @@ func (c *APIController) CreateShortURLHandler(w http.ResponseWriter, r *http.Req
 
 	longURL := apiRequest.URL
 	shortURI, err := c.storage.SaveURL(r.Context(), longURL)
-	if err != nil {
+	if err != nil && !errors.Is(err, storage.ErrConflictOnUniqueConstraint) {
 		apiResponse.ErrorStatus = fmt.Sprintf("%d", http.StatusInternalServerError)
 		apiResponse.ErrorDescription = fmt.Sprintf("Error when saving short URL: %s", err.Error())
 
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(apiResponse)
 
 		return
@@ -81,7 +82,11 @@ func (c *APIController) CreateShortURLHandler(w http.ResponseWriter, r *http.Req
 	apiResponse.Result = util.GetShortURL(c.baseURL, shortURI)
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	if err != nil && errors.Is(err, storage.ErrConflictOnUniqueConstraint) {
+		w.WriteHeader(http.StatusConflict)
+	} else {
+		w.WriteHeader(http.StatusCreated)
+	}
 	json.NewEncoder(w).Encode(apiResponse)
 }
 

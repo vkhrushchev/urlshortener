@@ -2,6 +2,7 @@ package controller
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -44,7 +45,7 @@ func (c *AppContoller) CreateShortURLHandler(w http.ResponseWriter, r *http.Requ
 
 	longURL := strings.TrimSpace(bodyBuffer.String())
 	shortURI, err := c.storage.SaveURL(r.Context(), longURL)
-	if err != nil {
+	if err != nil && !errors.Is(err, storage.ErrConflictOnUniqueConstraint) {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Errorw(err.Error())
 		_, err = w.Write([]byte(err.Error()))
@@ -62,7 +63,11 @@ func (c *AppContoller) CreateShortURLHandler(w http.ResponseWriter, r *http.Requ
 	)
 
 	w.Header().Add("Content-Type", "plain/text")
-	w.WriteHeader(http.StatusCreated)
+	if err != nil && errors.Is(err, storage.ErrConflictOnUniqueConstraint) {
+		w.WriteHeader(http.StatusConflict)
+	} else {
+		w.WriteHeader(http.StatusCreated)
+	}
 
 	shortURL := util.GetShortURL(c.baseURL, shortURI)
 

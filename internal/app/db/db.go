@@ -18,6 +18,7 @@ const createShortURLTableSQL = `create table if not exists short_url
 	short_url varchar(20) not null,
 	original_url text not null
 );`
+const createUniqueIndexOnOriginalURLSQL = `create unique index if not exists short_url_original_url_uindex on short_url (original_url);`
 
 type DBLookup struct {
 	db *sql.DB
@@ -41,6 +42,13 @@ func (d *DBLookup) InitDB(ctx context.Context) error {
 		return fmt.Errorf("db: error when execute createShortUrlTableSQL: %v", err)
 	}
 	log.Infow("db: run createShortUrlTableSQL... success")
+
+	log.Infow("db: run createUniqueIndexOnOriginalURLSQL...")
+	_, err = d.db.ExecContext(ctx, createUniqueIndexOnOriginalURLSQL)
+	if err != nil {
+		return fmt.Errorf("db: error when execute createUniqueIndexOnOriginalURLSQL: %v", err)
+	}
+	log.Infow("db: run createUniqueIndexOnOriginalURLSQL... success")
 
 	return nil
 }
