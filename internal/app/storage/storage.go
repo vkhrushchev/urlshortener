@@ -12,5 +12,5 @@ var log = zap.Must(zap.NewProduction()).Sugar()
 type Storage interface {
 	GetURLByShortURI(ctx context.Context, shortURI string) (longURL string, found bool, err error)
 	SaveURL(ctx context.Context, longURL string) (shortURI string, err error)
-	SaveURLBatch(ctx context.Context, entries []*dto.StorageShortURLEntry) ([]*dto.StorageShortURLEntry, error)
+	SaveURLBatch(ctx context.Context, entries []dto.StorageShortURLEntry) ([]dto.StorageShortURLEntry, error)
 }

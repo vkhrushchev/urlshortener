@@ -131,7 +131,7 @@ func (s *FileJSONStorage) SaveURL(ctx context.Context, longURL string) (shortURI
 	return shortURI, nil
 }
 
-func (s *FileJSONStorage) SaveURLBatch(ctx context.Context, entries []*dto.StorageShortURLEntry) ([]*dto.StorageShortURLEntry, error) {
+func (s *FileJSONStorage) SaveURLBatch(ctx context.Context, entries []dto.StorageShortURLEntry) ([]dto.StorageShortURLEntry, error) {
 	for _, entry := range entries {
 		shortURI, err := s.SaveURL(ctx, entry.LongURL)
 		if err != nil {

@@ -28,7 +28,7 @@ func NewAppController(baseURL string, storage storage.Storage) *AppContoller {
 func (c *AppContoller) CreateShortURLHandler(w http.ResponseWriter, r *http.Request) {
 	var bodyBuffer bytes.Buffer
 	_, err := bodyBuffer.ReadFrom(r.Body)
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		err = fmt.Errorf("app: error reading requestBody: %v", err)
 		if err != nil {
 			log.Errorw(err.Error())

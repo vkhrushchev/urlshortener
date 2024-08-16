@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vkhrushchev/urlshortener/internal/app/db"
 	"github.com/vkhrushchev/urlshortener/internal/app/dto"
@@ -33,7 +34,7 @@ func (s *DBStorage) GetURLByShortURI(ctx context.Context, shortURI string) (long
 
 	err = sqlRow.Scan(&longURL)
 	if err != nil {
-		if err != sql.ErrNoRows {
+		if !errors.Is(err, sql.ErrNoRows) {
 			return "", false, fmt.Errorf("db: error when get original URL by short URI")
 		}
 		return "", false, nil
@@ -81,7 +82,7 @@ func (s *DBStorage) SaveURL(ctx context.Context, longURL string) (shortURI strin
 	return shortURI, nil
 }
 
-func (s *DBStorage) SaveURLBatch(ctx context.Context, entries []*dto.StorageShortURLEntry) ([]*dto.StorageShortURLEntry, error) {
+func (s *DBStorage) SaveURLBatch(ctx context.Context, entries []dto.StorageShortURLEntry) ([]dto.StorageShortURLEntry, error) {
 	db := s.dbLookup.GetDB()
 	tx, err := db.Begin()
 	if err != nil {
@@ -90,7 +91,7 @@ func (s *DBStorage) SaveURLBatch(ctx context.Context, entries []*dto.StorageShor
 	}
 	defer func() {
 		err := tx.Rollback()
-		if err != nil {
+		if !errors.Is(err, pgx.ErrTxClosed) {
 			log.Errorw(
 				"db: error when rollback transaction",
 				"error",

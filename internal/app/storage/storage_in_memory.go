@@ -33,7 +33,7 @@ func (s *InMemoryStorage) SaveURL(ctx context.Context, longURL string) (shortURI
 	return shortURI, nil
 }
 
-func (s *InMemoryStorage) SaveURLBatch(ctx context.Context, entries []*dto.StorageShortURLEntry) ([]*dto.StorageShortURLEntry, error) {
+func (s *InMemoryStorage) SaveURLBatch(ctx context.Context, entries []dto.StorageShortURLEntry) ([]dto.StorageShortURLEntry, error) {
 	for _, entry := range entries {
 		shortURI, err := s.SaveURL(ctx, entry.LongURL)
 		if err != nil {
