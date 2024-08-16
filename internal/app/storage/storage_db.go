@@ -82,7 +82,7 @@ func (s *DBStorage) SaveURL(ctx context.Context, longURL string) (shortURI strin
 	return shortURI, nil
 }
 
-func (s *DBStorage) SaveURLBatch(ctx context.Context, entries []dto.StorageShortURLEntry) ([]dto.StorageShortURLEntry, error) {
+func (s *DBStorage) SaveURLBatch(ctx context.Context, entries []*dto.StorageShortURLEntry) ([]*dto.StorageShortURLEntry, error) {
 	db := s.dbLookup.GetDB()
 	tx, err := db.Begin()
 	if err != nil {

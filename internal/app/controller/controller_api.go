@@ -115,9 +115,9 @@ func (c *APIController) CreateShortURLBatchHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	storageShortURLEntries := make([]dto.StorageShortURLEntry, 0, len(apiRequest))
+	storageShortURLEntries := make([]*dto.StorageShortURLEntry, 0, len(apiRequest))
 	for _, apiShortURLEntry := range apiRequest {
-		storageShortURLEntry := dto.StorageShortURLEntry{
+		storageShortURLEntry := &dto.StorageShortURLEntry{
 			UUID:    apiShortURLEntry.CorrelationID,
 			LongURL: apiShortURLEntry.OriginalURL,
 		}
