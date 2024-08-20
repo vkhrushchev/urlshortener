@@ -23,3 +23,10 @@ type APICreateShortURLBatchResponseEntry struct {
 	CorrelationID string `json:"correlation_id"`
 	ShortURL      string `json:"short_url"`
 }
+
+type APIGetAllURLByUserIDResponse []APIGetAllURLByUserIDResponseEntry
+
+type APIGetAllURLByUserIDResponseEntry struct {
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
+}

@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vkhrushchev/urlshortener/internal/app/db"
 	"github.com/vkhrushchev/urlshortener/internal/app/dto"
+	"github.com/vkhrushchev/urlshortener/internal/middleware"
 	"github.com/vkhrushchev/urlshortener/internal/util"
 )
 
@@ -44,15 +45,17 @@ func (s *DBStorage) GetURLByShortURI(ctx context.Context, shortURI string) (long
 }
 
 func (s *DBStorage) SaveURL(ctx context.Context, longURL string) (shortURI string, err error) {
+	userID := ctx.Value(middleware.UserIDContextKey)
 	db := s.dbLookup.GetDB()
 
 	shortURI = util.RandStringRunes(10)
 	_, err = db.ExecContext(
 		ctx,
-		"INSERT INTO short_url(uuid, short_url, original_url) VALUES($1, $2, $3)",
+		"INSERT INTO short_url(uuid, short_url, original_url, user_id) VALUES($1, $2, $3, $4)",
 		uuid.New().String(),
 		shortURI,
 		longURL,
+		userID,
 	)
 
 	if err != nil {
@@ -83,7 +86,9 @@ func (s *DBStorage) SaveURL(ctx context.Context, longURL string) (shortURI strin
 }
 
 func (s *DBStorage) SaveURLBatch(ctx context.Context, entries []*dto.StorageShortURLEntry) ([]*dto.StorageShortURLEntry, error) {
+	userID := ctx.Value(middleware.UserIDContextKey)
 	db := s.dbLookup.GetDB()
+
 	tx, err := db.Begin()
 	if err != nil {
 		err = fmt.Errorf("db: error when begin transaction: %v", err)
@@ -99,7 +104,7 @@ func (s *DBStorage) SaveURLBatch(ctx context.Context, entries []*dto.StorageShor
 		}
 	}()
 
-	stmt, err := tx.PrepareContext(ctx, "INSERT INTO short_url(uuid, short_url, original_url) VALUES($1, $2, $3)")
+	stmt, err := tx.PrepareContext(ctx, "INSERT INTO short_url(uuid, short_url, original_url) VALUES($1, $2, $3, $4)")
 	if err != nil {
 		err = fmt.Errorf("db: error when create prepared statement: %v", err)
 		return nil, err
@@ -107,7 +112,7 @@ func (s *DBStorage) SaveURLBatch(ctx context.Context, entries []*dto.StorageShor
 
 	for _, entry := range entries {
 		shortURI := util.RandStringRunes(10)
-		_, err = stmt.ExecContext(ctx, entry.UUID, shortURI, entry.LongURL)
+		_, err = stmt.ExecContext(ctx, entry.UUID, shortURI, entry.LongURL, userID)
 		if err != nil {
 			err = fmt.Errorf("db: error when save entry to 'short_url' table: %v", err)
 			return nil, err
@@ -121,4 +126,31 @@ func (s *DBStorage) SaveURLBatch(ctx context.Context, entries []*dto.StorageShor
 	}
 
 	return entries, nil
+}
+
+func (s *DBStorage) GetURLByUserID(ctx context.Context, userID string) ([]*dto.StorageShortURLEntry, error) {
+	db := s.dbLookup.GetDB()
+
+	rows, err := db.QueryContext(ctx, "SELECT su.uuid, su.short_url, su.original_url FROM short_url su WHERE su.user_id = $1", userID)
+	if err != nil {
+		err = fmt.Errorf("db: error when execute_query: %w", err)
+		return nil, err
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Errorw("db: error when close sql.Rows: %v", err)
+		}
+	}()
+
+	result := make([]*dto.StorageShortURLEntry, 0)
+	for rows.Next() {
+		resultEntry := dto.StorageShortURLEntry{}
+		if err := rows.Scan(&resultEntry.UUID, &resultEntry.ShortURI, &resultEntry.LongURL); err != nil {
+			err = fmt.Errorf("db: error when parse sql.Rows: %w", err)
+			return nil, err
+		}
+		result = append(result, &resultEntry)
+	}
+
+	return result, nil
 }

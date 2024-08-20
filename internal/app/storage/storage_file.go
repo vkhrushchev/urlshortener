@@ -143,3 +143,8 @@ func (s *FileJSONStorage) SaveURLBatch(ctx context.Context, entries []*dto.Stora
 
 	return entries, nil
 }
+
+func (s *FileJSONStorage) GetURLByUserID(ctx context.Context, userID string) ([]*dto.StorageShortURLEntry, error) {
+	// not supported
+	return make([]*dto.StorageShortURLEntry, 0), nil
+}
