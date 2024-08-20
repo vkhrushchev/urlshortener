@@ -45,3 +45,8 @@ func (s *InMemoryStorage) SaveURLBatch(ctx context.Context, entries []*dto.Stora
 
 	return entries, nil
 }
+
+func (s *InMemoryStorage) GetURLByUserID(ctx context.Context, userID string) ([]*dto.StorageShortURLEntry, error) {
+	// not supported
+	return make([]*dto.StorageShortURLEntry, 0), nil
+}
