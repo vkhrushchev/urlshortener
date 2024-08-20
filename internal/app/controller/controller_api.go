@@ -152,18 +152,6 @@ func (c *APIController) CreateShortURLBatchHandler(w http.ResponseWriter, r *htt
 }
 
 func (c *APIController) GetShortURLByUserID(w http.ResponseWriter, r *http.Request) {
-	contentType := r.Header.Get("Content-Type")
-	if contentType != "application/json" {
-		log.Infow(
-			"app: not supported \"Content-Type\" header",
-			"Content-Type", contentType,
-		)
-
-		w.WriteHeader(http.StatusBadRequest)
-
-		return
-	}
-
 	userID := r.Context().Value(middleware.UserIDContextKey).(string)
 	storageEntries, err := c.storage.GetURLByUserID(r.Context(), userID)
 	if err != nil {
