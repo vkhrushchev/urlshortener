@@ -195,7 +195,9 @@ func UserIDCoockieMiddleware(next func(w http.ResponseWriter, r *http.Request)) 
 
 		var isValidCookie bool
 		if userIDCookie != nil {
-			isValidCookie = validateUserIDCookie(userIDCookie.Value, userIDSignatureCookie.Value)
+			userID = userIDCookie.Value
+			userIDSignature = userIDSignatureCookie.Value
+			isValidCookie = validateUserIDCookie(userID, userIDSignature)
 		}
 
 		if userIDCookie == nil || !isValidCookie {
@@ -221,13 +223,9 @@ func UserIDCoockieMiddleware(next func(w http.ResponseWriter, r *http.Request)) 
 
 			http.SetCookie(w, userIDCookie)
 			http.SetCookie(w, userIDSignatureCookie)
-
-			r = r.WithContext(context.WithValue(r.Context(), UserIDContextKey, userID))
-
-			next(w, r)
-			return
 		}
 
+		r = r.WithContext(context.WithValue(r.Context(), UserIDContextKey, userID))
 		next(w, r)
 	}
 }

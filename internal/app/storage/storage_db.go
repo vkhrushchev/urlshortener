@@ -96,7 +96,7 @@ func (s *DBStorage) SaveURLBatch(ctx context.Context, entries []*dto.StorageShor
 	}
 	defer func() {
 		err := tx.Rollback()
-		if !errors.Is(err, pgx.ErrTxClosed) {
+		if err != nil && !errors.Is(err, pgx.ErrTxClosed) {
 			log.Errorw(
 				"db: error when rollback transaction",
 				"error",
@@ -104,7 +104,7 @@ func (s *DBStorage) SaveURLBatch(ctx context.Context, entries []*dto.StorageShor
 		}
 	}()
 
-	stmt, err := tx.PrepareContext(ctx, "INSERT INTO short_url(uuid, short_url, original_url) VALUES($1, $2, $3, $4)")
+	stmt, err := tx.PrepareContext(ctx, "INSERT INTO short_url(uuid, short_url, original_url, user_id) VALUES($1, $2, $3, $4)")
 	if err != nil {
 		err = fmt.Errorf("db: error when create prepared statement: %v", err)
 		return nil, err
@@ -150,6 +150,11 @@ func (s *DBStorage) GetURLByUserID(ctx context.Context, userID string) ([]*dto.S
 			return nil, err
 		}
 		result = append(result, &resultEntry)
+	}
+
+	if err := rows.Err(); err != nil {
+		err = fmt.Errorf("db: error in rows.Err(): %w", err)
+		return nil, err
 	}
 
 	return result, nil
