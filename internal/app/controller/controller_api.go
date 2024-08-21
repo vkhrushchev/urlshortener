@@ -62,7 +62,7 @@ func (c *APIController) CreateShortURLHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	longURL := apiRequest.URL
-	shortURI, err := c.storage.SaveURL(r.Context(), longURL)
+	shortURLEntry, err := c.storage.SaveURL(r.Context(), longURL)
 	if err != nil && !errors.Is(err, storage.ErrConflictOnUniqueConstraint) {
 		apiResponse.ErrorStatus = fmt.Sprintf("%d", http.StatusInternalServerError)
 		apiResponse.ErrorDescription = fmt.Sprintf("Error when saving short URL: %s", err.Error())
@@ -76,11 +76,11 @@ func (c *APIController) CreateShortURLHandler(w http.ResponseWriter, r *http.Req
 
 	log.Infow(
 		"app: short_url_added",
-		"shortURI", shortURI,
-		"longURL", longURL,
+		"shortURI", shortURLEntry.ShortURI,
+		"longURL", shortURLEntry.LongURL,
 	)
 
-	apiResponse.Result = util.GetShortURL(c.baseURL, shortURI)
+	apiResponse.Result = util.GetShortURL(c.baseURL, shortURLEntry.ShortURI)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err != nil && errors.Is(err, storage.ErrConflictOnUniqueConstraint) {
@@ -183,4 +183,33 @@ func (c *APIController) GetShortURLByUserID(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(apiResponse)
+}
+
+func (c *APIController) DeleteShortURLs(w http.ResponseWriter, r *http.Request) {
+	contentType := r.Header.Get("Content-Type")
+	if contentType != "application/json" {
+		log.Infow(
+			"app: not supported \"Content-Type\" header",
+			"Content-Type", contentType,
+		)
+
+		w.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	var apiRequest []string
+	if err := json.NewDecoder(r.Body).Decode(&apiRequest); err != nil {
+		log.Errorw(
+			"app: error when decode request body from json",
+			"erorr", err.Error(),
+		)
+
+		w.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	// userID := r.Context().Value(middleware.UserIDContextKey).(string)
+	w.WriteHeader(http.StatusAccepted)
 }

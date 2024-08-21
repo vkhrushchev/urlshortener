@@ -28,34 +28,55 @@ func NewDBStorage(dbLookup *db.DBLookup) *DBStorage {
 	}
 }
 
-func (s *DBStorage) GetURLByShortURI(ctx context.Context, shortURI string) (longURL string, found bool, err error) {
+func (s *DBStorage) GetURLByShortURI(ctx context.Context, shortURI string) (*dto.StorageShortURLEntry, error) {
 	db := s.dbLookup.GetDB()
 
-	sqlRow := db.QueryRowContext(ctx, "SELECT su.original_url FROM short_url su WHERE su.short_url = $1", shortURI)
+	sqlRow := db.QueryRowContext(
+		ctx,
+		"SELECT su.uuid, su.short_url, su.original_url, su.user_id, su.is_deleted FROM short_url su WHERE su.short_url = $1",
+		shortURI,
+	)
 
-	err = sqlRow.Scan(&longURL)
+	shortURLEntry := &dto.StorageShortURLEntry{}
+	err := sqlRow.Scan(
+		&shortURLEntry.UUID,
+		&shortURLEntry.ShortURI,
+		&shortURLEntry.LongURL,
+		&shortURLEntry.UserID,
+		&shortURLEntry.Deleted,
+	)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			return "", false, fmt.Errorf("db: error when get original URL by short URI")
+			return nil, fmt.Errorf("db: error when get original URL by short URI")
 		}
-		return "", false, nil
+		return nil, nil
 	}
 
-	return longURL, true, nil
+	return shortURLEntry, nil
 }
 
-func (s *DBStorage) SaveURL(ctx context.Context, longURL string) (shortURI string, err error) {
-	userID := ctx.Value(middleware.UserIDContextKey)
+func (s *DBStorage) SaveURL(ctx context.Context, longURL string) (*dto.StorageShortURLEntry, error) {
+	userID := ctx.Value(middleware.UserIDContextKey).(string)
 	db := s.dbLookup.GetDB()
 
-	shortURI = util.RandStringRunes(10)
-	_, err = db.ExecContext(
+	shortURI := util.RandStringRunes(10)
+
+	shortURLEntry := &dto.StorageShortURLEntry{
+		UUID:     uuid.New().String(),
+		ShortURI: shortURI,
+		LongURL:  longURL,
+		UserID:   userID,
+		Deleted:  false,
+	}
+
+	_, err := db.ExecContext(
 		ctx,
-		"INSERT INTO short_url(uuid, short_url, original_url, user_id) VALUES($1, $2, $3, $4)",
-		uuid.New().String(),
-		shortURI,
-		longURL,
-		userID,
+		"INSERT INTO short_url(uuid, short_url, original_url, user_id, is_deleted) VALUES($1, $2, $3, $4, $5)",
+		shortURLEntry.UUID,
+		shortURLEntry.ShortURI,
+		shortURLEntry.LongURL,
+		shortURLEntry.UserID,
+		shortURLEntry.Deleted,
 	)
 
 	if err != nil {
@@ -65,24 +86,24 @@ func (s *DBStorage) SaveURL(ctx context.Context, longURL string) (shortURI strin
 				row := db.QueryRowContext(ctx, "SELECT su.short_url FROM short_url su WHERE su.original_url = $1", longURL)
 				if row.Err() != nil {
 					err = fmt.Errorf("db: error when search existed short URL: %v", err)
-					return "", err
+					return nil, err
 				}
 
 				err = row.Scan(&shortURI)
 				if err != nil {
 					err = fmt.Errorf("db: error when scan existed short URL: %v", err)
-					return "", err
+					return nil, err
 				}
 
-				return shortURI, ErrConflictOnUniqueConstraint
+				return shortURLEntry, ErrConflictOnUniqueConstraint
 			}
 		}
 
 		err = fmt.Errorf("db: error when save short URL: %v", err)
-		return "", err
+		return nil, err
 	}
 
-	return shortURI, nil
+	return shortURLEntry, nil
 }
 
 func (s *DBStorage) SaveURLBatch(ctx context.Context, entries []*dto.StorageShortURLEntry) ([]*dto.StorageShortURLEntry, error) {
@@ -158,4 +179,8 @@ func (s *DBStorage) GetURLByUserID(ctx context.Context, userID string) ([]*dto.S
 	}
 
 	return result, nil
+}
+
+func (s *DBStorage) DeleteByShortURIs(ctx context.Context, shortURIs []string) (int, error) {
+	return 0, fmt.Errorf("storage: func DeleteByShortURIs not implemented for DBStorage")
 }

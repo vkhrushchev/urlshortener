@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/google/uuid"
 	"github.com/vkhrushchev/urlshortener/internal/app/dto"
 )
 
@@ -58,14 +57,14 @@ func NewFileJSONStorage(path string) (*FileJSONStorage, error) {
 			return nil, err
 		}
 
-		fileJSONStorage.storage[shortURLEntry.ShortURI] = shortURLEntry.LongURL
+		fileJSONStorage.storage[shortURLEntry.ShortURI] = &shortURLEntry
 	}
 
 	return fileJSONStorage, nil
 }
 
-func (s *FileJSONStorage) SaveURL(ctx context.Context, longURL string) (shortURI string, err error) {
-	shortURI, err = s.InMemoryStorage.SaveURL(ctx, longURL)
+func (s *FileJSONStorage) SaveURL(ctx context.Context, longURL string) (*dto.StorageShortURLEntry, error) {
+	shortURLEntry, err := s.InMemoryStorage.SaveURL(ctx, longURL)
 	if err != nil {
 		log.Errorw(
 			"storage: unexpected error when save short URL to InMemeoryStorage",
@@ -73,7 +72,7 @@ func (s *FileJSONStorage) SaveURL(ctx context.Context, longURL string) (shortURI
 		)
 		err = fmt.Errorf("storage: unexpected error when save short URL to InMemeoryStorage: %v", err)
 
-		return "", err
+		return nil, err
 	}
 
 	file, err := os.OpenFile(s.path, os.O_WRONLY|os.O_APPEND, 0644)
@@ -85,7 +84,7 @@ func (s *FileJSONStorage) SaveURL(ctx context.Context, longURL string) (shortURI
 		)
 		err = fmt.Errorf("storage: error when open file: %v", err)
 
-		return "", err
+		return nil, err
 	}
 
 	defer func() {
@@ -99,11 +98,7 @@ func (s *FileJSONStorage) SaveURL(ctx context.Context, longURL string) (shortURI
 		}
 	}()
 
-	storageJSONBytes, err := json.Marshal(&dto.StorageShortURLEntry{
-		UUID:     uuid.New().String(),
-		ShortURI: shortURI,
-		LongURL:  longURL,
-	})
+	storageJSONBytes, err := json.Marshal(shortURLEntry)
 	if err != nil {
 		log.Errorw(
 			"storage: error when marshal storageJSON to JSON",
@@ -112,7 +107,7 @@ func (s *FileJSONStorage) SaveURL(ctx context.Context, longURL string) (shortURI
 		)
 		err = fmt.Errorf("storage: error when marshal storageJSON to JSON: %v", err)
 
-		return "", err
+		return nil, err
 	}
 
 	storageJSONBytes = append(storageJSONBytes, '\n')
@@ -125,26 +120,12 @@ func (s *FileJSONStorage) SaveURL(ctx context.Context, longURL string) (shortURI
 		)
 		err = fmt.Errorf("storage: error when write storageJSON to file: %v", err)
 
-		return "", err
+		return nil, err
 	}
 
-	return shortURI, nil
+	return shortURLEntry, nil
 }
 
-func (s *FileJSONStorage) SaveURLBatch(ctx context.Context, entries []*dto.StorageShortURLEntry) ([]*dto.StorageShortURLEntry, error) {
-	for _, entry := range entries {
-		shortURI, err := s.SaveURL(ctx, entry.LongURL)
-		if err != nil {
-			return nil, err
-		}
-
-		entry.ShortURI = shortURI
-	}
-
-	return entries, nil
-}
-
-func (s *FileJSONStorage) GetURLByUserID(ctx context.Context, userID string) ([]*dto.StorageShortURLEntry, error) {
-	// not supported
-	return make([]*dto.StorageShortURLEntry, 0), nil
+func (s *FileJSONStorage) DeleteByShortURIs(ctx context.Context, shortURIs []string) (int, error) {
+	return 0, fmt.Errorf("storage: func DeleteByShortURIs not implemented for FileJSONStorage")
 }
