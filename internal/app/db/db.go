@@ -20,7 +20,7 @@ const createShortURLTableSQL = `create table if not exists short_url
 );`
 const createUniqueIndexOnOriginalURLSQL = `create unique index if not exists short_url_original_url_uindex on short_url (original_url);`
 const addUserIDColumnSQL = `alter table short_url add if not exists user_id varchar(36) not null;`
-const addIsDeletedColumn = `alter table short_url add if not exists is_deleted boolean no null;`
+const addIsDeletedColumn = `alter table short_url add if not exists is_deleted boolean not null;`
 
 type DBLookup struct {
 	db *sql.DB
