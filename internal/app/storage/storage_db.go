@@ -83,13 +83,23 @@ func (s *DBStorage) SaveURL(ctx context.Context, longURL string) (*dto.StorageSh
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			if pgErr.Code == pgerrcode.UniqueViolation {
-				row := db.QueryRowContext(ctx, "SELECT su.short_url FROM short_url su WHERE su.original_url = $1", longURL)
-				if row.Err() != nil {
+				sqlRow := db.QueryRowContext(
+					ctx,
+					"SELECT su.uuid, su.short_url, su.original_url, su.user_id, su.is_deleted FROM short_url su WHERE su.original_url = $1",
+					shortURLEntry.LongURL,
+				)
+				if sqlRow.Err() != nil {
 					err = fmt.Errorf("db: error when search existed short URL: %v", err)
 					return nil, err
 				}
 
-				err = row.Scan(&shortURI)
+				err = sqlRow.Scan(
+					&shortURLEntry.UUID,
+					&shortURLEntry.ShortURI,
+					&shortURLEntry.LongURL,
+					&shortURLEntry.UserID,
+					&shortURLEntry.Deleted,
+				)
 				if err != nil {
 					err = fmt.Errorf("db: error when scan existed short URL: %v", err)
 					return nil, err
