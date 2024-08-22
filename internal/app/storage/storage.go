@@ -14,5 +14,5 @@ type Storage interface {
 	SaveURL(ctx context.Context, longURL string) (*dto.StorageShortURLEntry, error)
 	SaveURLBatch(ctx context.Context, entries []*dto.StorageShortURLEntry) ([]*dto.StorageShortURLEntry, error)
 	GetURLByUserID(ctx context.Context, userID string) ([]*dto.StorageShortURLEntry, error)
-	DeleteByShortURIs(ctx context.Context, shortURIs []string) (int, error)
+	DeleteByShortURIs(ctx context.Context, shortURIs []string) error
 }

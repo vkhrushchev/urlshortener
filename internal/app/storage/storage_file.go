@@ -126,6 +126,6 @@ func (s *FileJSONStorage) SaveURL(ctx context.Context, longURL string) (*dto.Sto
 	return shortURLEntry, nil
 }
 
-func (s *FileJSONStorage) DeleteByShortURIs(ctx context.Context, shortURIs []string) (int, error) {
-	return 0, fmt.Errorf("storage: func DeleteByShortURIs not implemented for FileJSONStorage")
+func (s *FileJSONStorage) DeleteByShortURIs(ctx context.Context, shortURIs []string) error {
+	return fmt.Errorf("storage: func DeleteByShortURIs not implemented for FileJSONStorage")
 }

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -206,10 +207,19 @@ func (c *APIController) DeleteShortURLs(w http.ResponseWriter, r *http.Request) 
 		)
 
 		w.WriteHeader(http.StatusBadRequest)
-
 		return
 	}
 
-	// userID := r.Context().Value(middleware.UserIDContextKey).(string)
+	err := c.storage.DeleteByShortURIs(context.WithoutCancel(r.Context()), apiRequest)
+	if err != nil {
+		log.Errorw(
+			"app: error when delete by shortURIs",
+			"erorr", err.Error(),
+		)
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusAccepted)
 }

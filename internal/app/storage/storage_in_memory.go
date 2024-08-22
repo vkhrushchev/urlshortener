@@ -69,16 +69,14 @@ func (s *InMemoryStorage) GetURLByUserID(ctx context.Context, userID string) ([]
 	return s.storageByUserID[userID], nil
 }
 
-func (s *InMemoryStorage) DeleteByShortURIs(ctx context.Context, shortURIs []string) (int, error) {
+func (s *InMemoryStorage) DeleteByShortURIs(ctx context.Context, shortURIs []string) error {
 	userID := ctx.Value(middleware.UserIDContextKey).(string)
-	deleted := 0
 	for _, shortURI := range shortURIs {
 		shortURLEntry := s.storage[shortURI]
 		if shortURLEntry != nil && shortURLEntry.UserID == userID {
 			shortURLEntry.Deleted = true
-			deleted++
 		}
 	}
 
-	return deleted, nil
+	return nil
 }

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
@@ -190,6 +191,120 @@ func (s *DBStorage) GetURLByUserID(ctx context.Context, userID string) ([]*dto.S
 	return result, nil
 }
 
-func (s *DBStorage) DeleteByShortURIs(ctx context.Context, shortURIs []string) (int, error) {
-	return 0, fmt.Errorf("storage: func DeleteByShortURIs not implemented for DBStorage")
+func (s *DBStorage) DeleteByShortURIs(ctx context.Context, shortURIs []string) error {
+	db := s.dbLookup.GetDB()
+
+	tx, err := db.Begin()
+	if err != nil {
+		err = fmt.Errorf("db: error when begin transaction: %v", err)
+		return err
+	}
+
+	shortURIsCh := deleteByShortURIsGenerator(shortURIs)
+
+	stmt, err := tx.PrepareContext(ctx, "UPDATE short_url SET is_deleted = true WHERE is_deleted = false AND short_url = $1 AND user_id = $2")
+	if err != nil {
+		err = fmt.Errorf("db: error when create prepared statement: %v", err)
+		return err
+	}
+	userID := ctx.Value(middleware.UserIDContextKey).(string)
+	deleteByShortURIsTaskResultChannels := deleteByShortURIsTaskFanOut(ctx, stmt, &userID, shortURIsCh)
+	deleteByShortURIsTaskFanIn(tx, deleteByShortURIsTaskResultChannels)
+
+	return nil
+}
+
+func deleteByShortURIsGenerator(shortURIs []string) chan string {
+	inputCh := make(chan string)
+
+	go func() {
+		defer close(inputCh)
+
+		for _, data := range shortURIs {
+			inputCh <- data
+		}
+	}()
+
+	return inputCh
+}
+
+func deleteByShortURIsTask(ctx context.Context, stmt *sql.Stmt, userID *string, shortURIsCh chan string) chan int {
+	deleteByShortURIsTaskResultCh := make(chan int)
+
+	go func() {
+		defer close(deleteByShortURIsTaskResultCh)
+
+		for shortURI := range shortURIsCh {
+			res, err := stmt.ExecContext(ctx, shortURI, userID)
+			if err != nil {
+				log.Errorw(
+					"storage: error when update 'is_deleted' columm",
+					"error", err.Error(),
+					"shortURI", shortURI,
+					"userID", userID,
+				)
+				continue
+			}
+
+			deletedCount, err := res.RowsAffected()
+			if err != nil {
+				log.Errorw(
+					"storage: error when fetch result of update 'is_deleted' columm",
+					"error", err.Error(),
+					"shortURI", shortURI,
+					"userID", userID,
+				)
+			}
+
+			if deletedCount == 0 {
+				log.Infow(
+					"storage: row not marked as deleted",
+					"shortURI", shortURI,
+					"userID", userID,
+				)
+			} else {
+				log.Infow(
+					"storage: row marked as deleted",
+					"shortURI", shortURI,
+					"userID", userID,
+				)
+			}
+
+			deleteByShortURIsTaskResultCh <- int(deletedCount)
+		}
+	}()
+
+	return deleteByShortURIsTaskResultCh
+}
+
+func deleteByShortURIsTaskFanOut(ctx context.Context, stmt *sql.Stmt, userID *string, shortURIsCh chan string) []chan int {
+	workerCount := 10
+	deleteByShortURIsTaskResultChannels := make([]chan int, workerCount)
+	for i := 0; i < workerCount; i++ {
+		deleteByShortURIsTaskResultCh := deleteByShortURIsTask(ctx, stmt, userID, shortURIsCh)
+		deleteByShortURIsTaskResultChannels[i] = deleteByShortURIsTaskResultCh
+	}
+
+	return deleteByShortURIsTaskResultChannels
+}
+
+func deleteByShortURIsTaskFanIn(tx *sql.Tx, deleteByShortURIsTaskResultChannels []chan int) {
+	go func() {
+		var wg sync.WaitGroup
+		for _, deleteByShortURIsTaskResultCh := range deleteByShortURIsTaskResultChannels {
+			deleteByShortURIsTaskResultChClosure := deleteByShortURIsTaskResultCh
+			wg.Add(1)
+
+			go func() {
+				defer wg.Done()
+
+				for range deleteByShortURIsTaskResultChClosure {
+					// проссто считываем данные из канала
+				}
+			}()
+		}
+
+		wg.Wait()
+		tx.Commit()
+	}()
 }
