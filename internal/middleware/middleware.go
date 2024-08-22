@@ -2,11 +2,16 @@ package middleware
 
 import (
 	"compress/gzip"
+	"context"
+	"crypto/md5"
+	"encoding/hex"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -156,5 +161,113 @@ func GzipMiddleware(next func(w http.ResponseWriter, r *http.Request)) func(w ht
 		}
 
 		next(ow, r)
+	}
+}
+
+type ShoretenerContextKey string
+
+const (
+	UserIDContextKey ShoretenerContextKey = "userID"
+)
+const userIDSignatureSalt = "mega_puper_salt"
+
+func UserIDCoockieMiddleware(next func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var userIDCookie *http.Cookie
+		var userIDSignatureCookie *http.Cookie
+		var userID string
+		var userIDSignature string
+		var err error
+
+		userIDCookie, err = r.Cookie("userID")
+		if err != nil && !errors.Is(err, http.ErrNoCookie) {
+			log.Errorw("middleware: error when get cookie 'userID'")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		userIDSignatureCookie, err = r.Cookie("userIDSignature")
+		if err != nil && !errors.Is(err, http.ErrNoCookie) {
+			log.Errorw("middleware: error when get cookie 'userIDSignature'")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		var isValidCookie bool
+		if userIDCookie != nil {
+			userID = userIDCookie.Value
+			userIDSignature = userIDSignatureCookie.Value
+			isValidCookie = validateUserIDCookie(userID, userIDSignature)
+		}
+
+		if userIDCookie == nil || !isValidCookie {
+			log.Infow("middleware: 'userID' cookies not found or not valid")
+
+			userID = uuid.NewString()
+			userIDSignatureBytes := md5.Sum([]byte(userID + userIDSignatureSalt))
+			userIDSignature = hex.EncodeToString(userIDSignatureBytes[:])
+
+			userIDCookie = &http.Cookie{
+				Name:   "userID",
+				Value:  userID,
+				Path:   "/",
+				MaxAge: 3600,
+			}
+
+			userIDSignatureCookie = &http.Cookie{
+				Name:   "userIDSignature",
+				Value:  userIDSignature,
+				Path:   "/",
+				MaxAge: 3600,
+			}
+
+			http.SetCookie(w, userIDCookie)
+			http.SetCookie(w, userIDSignatureCookie)
+		}
+
+		r = r.WithContext(context.WithValue(r.Context(), UserIDContextKey, userID))
+		next(w, r)
+	}
+}
+
+func validateUserIDCookie(userID string, userIDSignature string) bool {
+	userIDSignatureByUserIDCookieBytes := md5.Sum([]byte(userID + userIDSignatureSalt))
+	userIDSignatureByUserIDCookie := hex.EncodeToString(userIDSignatureByUserIDCookieBytes[:])
+
+	return userIDSignatureByUserIDCookie == userIDSignature
+}
+
+func AuthByUserIDCookieMiddleware(next func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var userIDCookie *http.Cookie
+		var userIDSignatureCookie *http.Cookie
+		var err error
+
+		userIDCookie, err = r.Cookie("userID")
+		if err != nil && !errors.Is(err, http.ErrNoCookie) {
+			log.Errorw("middleware: error when get cookie 'userID'")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		userIDSignatureCookie, err = r.Cookie("userIDSignature")
+		if err != nil && !errors.Is(err, http.ErrNoCookie) {
+			log.Errorw("middleware: error when get cookie 'userIDSignature'")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		var isValidCookie bool
+		if userIDCookie != nil {
+			isValidCookie = validateUserIDCookie(userIDCookie.Value, userIDSignatureCookie.Value)
+		}
+
+		if !isValidCookie {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		r = r.WithContext(context.WithValue(r.Context(), UserIDContextKey, userIDCookie.Value))
+		next(w, r)
 	}
 }

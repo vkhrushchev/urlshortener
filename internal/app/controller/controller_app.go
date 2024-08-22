@@ -44,7 +44,7 @@ func (c *AppContoller) CreateShortURLHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	longURL := strings.TrimSpace(bodyBuffer.String())
-	shortURI, err := c.storage.SaveURL(r.Context(), longURL)
+	shortURLEntry, err := c.storage.SaveURL(r.Context(), longURL)
 	if err != nil && !errors.Is(err, storage.ErrConflictOnUniqueConstraint) {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Errorw(err.Error())
@@ -58,8 +58,8 @@ func (c *AppContoller) CreateShortURLHandler(w http.ResponseWriter, r *http.Requ
 
 	log.Infow(
 		"app: short_url_added",
-		"shortURI", shortURI,
-		"longURL", longURL,
+		"shortURI", shortURLEntry.ShortURI,
+		"longURL", shortURLEntry.LongURL,
 	)
 
 	w.Header().Add("Content-Type", "plain/text")
@@ -69,7 +69,7 @@ func (c *AppContoller) CreateShortURLHandler(w http.ResponseWriter, r *http.Requ
 		w.WriteHeader(http.StatusCreated)
 	}
 
-	shortURL := util.GetShortURL(c.baseURL, shortURI)
+	shortURL := util.GetShortURL(c.baseURL, shortURLEntry.ShortURI)
 
 	_, err = w.Write([]byte(shortURL))
 	if err != nil {
@@ -81,7 +81,7 @@ func (c *AppContoller) CreateShortURLHandler(w http.ResponseWriter, r *http.Requ
 func (c *AppContoller) GetURLHandler(w http.ResponseWriter, r *http.Request) {
 	shortURI := chi.URLParam(r, "id")
 
-	longURL, found, err := c.storage.GetURLByShortURI(r.Context(), shortURI)
+	shortURLEntry, err := c.storage.GetURLByShortURI(r.Context(), shortURI)
 	if err != nil {
 		log.Errorw(
 			"app: error when get original url from storage",
@@ -93,13 +93,19 @@ func (c *AppContoller) GetURLHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !found {
+	if shortURLEntry == nil {
 		w.Header().Add("Content-Type", "plain/text")
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
+	if shortURLEntry.Deleted {
+		w.Header().Add("Content-Type", "plain/text")
+		w.WriteHeader(http.StatusGone)
+		return
+	}
+
 	w.Header().Add("Content-Type", "plain/text")
-	w.Header().Add("Location", strings.TrimSpace(longURL))
+	w.Header().Add("Location", strings.TrimSpace(shortURLEntry.LongURL))
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }

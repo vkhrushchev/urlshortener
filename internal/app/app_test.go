@@ -9,11 +9,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vkhrushchev/urlshortener/internal/app/controller"
 	"github.com/vkhrushchev/urlshortener/internal/app/dto"
 	"github.com/vkhrushchev/urlshortener/internal/app/storage"
+	"github.com/vkhrushchev/urlshortener/internal/middleware"
 )
 
 func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
@@ -70,7 +72,10 @@ func TestURLShortenerApp_getURLHandler(t *testing.T) {
 	app.RegisterHandlers()
 
 	// добавляем подготовленные данные для тестов
-	shortURI, err := storage.SaveURL(context.Background(), "https://google.com")
+	shortURLEntry, err := storage.SaveURL(
+		context.WithValue(context.Background(), middleware.UserIDContextKey, uuid.NewString()),
+		"https://google.com",
+	)
 	require.NoError(t, err, "unexpected error when save URL")
 
 	ts := httptest.NewServer(app.router)
@@ -84,7 +89,7 @@ func TestURLShortenerApp_getURLHandler(t *testing.T) {
 	}{
 		{
 			name:     "get success",
-			path:     "/" + shortURI,
+			path:     "/" + shortURLEntry.ShortURI,
 			status:   http.StatusTemporaryRedirect,
 			location: "https://google.com",
 		},
