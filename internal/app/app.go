@@ -59,6 +59,11 @@ func (a *URLShortenerApp) RegisterHandlers() {
 		middleware.LogRequestMiddleware(
 			middleware.AuthByUserIDCookieMiddleware(
 				middleware.GzipMiddleware(a.apiController.GetShortURLByUserID))))
+	a.router.Delete(
+		"/api/user/urls",
+		middleware.LogRequestMiddleware(
+			middleware.AuthByUserIDCookieMiddleware(
+				middleware.GzipMiddleware(a.apiController.GetShortURLByUserID))))
 	a.router.Get(
 		"/ping",
 		a.healthController.Ping)
