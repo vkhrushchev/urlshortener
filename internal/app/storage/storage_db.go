@@ -125,20 +125,19 @@ func (s *DBStorage) SaveURLBatch(ctx context.Context, entries []*dto.StorageShor
 		}
 	}()
 
-	stmt, err := tx.PrepareContext(ctx, "INSERT INTO short_url(uuid, short_url, original_url, user_id) VALUES($1, $2, $3, $4)")
+	stmt, err := tx.PrepareContext(ctx, "INSERT INTO short_url(uuid, short_url, original_url, user_id, is_deleted) VALUES($1, $2, $3, $4, $5)")
 	if err != nil {
 		err = fmt.Errorf("db: error when create prepared statement: %v", err)
 		return nil, err
 	}
 
 	for _, entry := range entries {
-		shortURI := util.RandStringRunes(10)
-		_, err = stmt.ExecContext(ctx, entry.UUID, shortURI, entry.LongURL, userID)
+		entry.ShortURI = util.RandStringRunes(10)
+		_, err = stmt.ExecContext(ctx, entry.UUID, entry.ShortURI, entry.LongURL, userID, false)
 		if err != nil {
 			err = fmt.Errorf("db: error when save entry to 'short_url' table: %v", err)
 			return nil, err
 		}
-		entry.ShortURI = shortURI
 	}
 
 	if err = tx.Commit(); err != nil {
