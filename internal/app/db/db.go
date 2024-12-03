@@ -19,6 +19,8 @@ const createShortURLTableSQL = `create table if not exists short_url
 	original_url text not null
 );`
 const createUniqueIndexOnOriginalURLSQL = `create unique index if not exists short_url_original_url_uindex on short_url (original_url);`
+const addUserIDColumnSQL = `alter table short_url add if not exists user_id varchar(36) not null;`
+const addIsDeletedColumnSQL = `alter table short_url add if not exists is_deleted boolean not null;`
 
 type DBLookup struct {
 	db *sql.DB
@@ -49,6 +51,20 @@ func (d *DBLookup) InitDB(ctx context.Context) error {
 		return fmt.Errorf("db: error when execute createUniqueIndexOnOriginalURLSQL: %v", err)
 	}
 	log.Infow("db: run createUniqueIndexOnOriginalURLSQL... success")
+
+	log.Infow("db: run addUserIDColumnSQL...")
+	_, err = d.db.ExecContext(ctx, addUserIDColumnSQL)
+	if err != nil {
+		return fmt.Errorf("db: error when execute addUserIDColumnSQL: %v", err)
+	}
+	log.Infow("db: run addUserIDColumnSQL... success")
+
+	log.Infow("db: run addIsDeletedColumnSQL...")
+	_, err = d.db.ExecContext(ctx, addIsDeletedColumnSQL)
+	if err != nil {
+		return fmt.Errorf("db: error when execute addIsDeletedColumnSQL: %v", err)
+	}
+	log.Infow("db: run addIsDeletedColumnSQL... success")
 
 	return nil
 }
