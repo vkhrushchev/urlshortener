@@ -130,7 +130,7 @@ func (c *APIController) CreateShortURLBatchHandler(w http.ResponseWriter, r *htt
 	if err != nil {
 		log.Errorw(
 			"app: error when store batch of URLs",
-			"erorr", err.Error(),
+			"error", err.Error(),
 		)
 
 		w.WriteHeader(http.StatusInternalServerError)

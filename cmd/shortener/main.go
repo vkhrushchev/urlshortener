@@ -30,7 +30,7 @@ func main() {
 	shortenerApp.RegisterHandlers()
 	err = shortenerApp.Run()
 	if err != nil {
-		log.Fatalf("main: ошибка при инициализации FileJsonStorage: %v", err)
+		log.Fatalf("main: ошибка при запуске приложения: %v", err)
 	}
 }
 
@@ -43,6 +43,8 @@ func initStorage(dbLookup *db.DBLookup, fileStoragePath string) storage.Storage 
 		if err != nil {
 			log.Fatalf("main: ошибка при инициализации структуры БД: %v", err)
 		}
+
+		log.Infow("main: успешно инициализиоровано DBStorage")
 	}
 
 	if store == nil && flags.fileStoragePath != "" {
@@ -50,10 +52,14 @@ func initStorage(dbLookup *db.DBLookup, fileStoragePath string) storage.Storage 
 		if err != nil {
 			log.Fatalf("main: ошибка при инициализации FileJsonStorage: %v", err)
 		}
+
+		log.Infow("main: успешно инициализиоровано FileJsonStorage")
 	}
 
 	if store == nil {
 		store = storage.NewInMemoryStorage()
+
+		log.Infow("main: успешно инициализиоровано InMemoryStorage")
 	}
 
 	return store
