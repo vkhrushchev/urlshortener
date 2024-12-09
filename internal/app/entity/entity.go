@@ -1,6 +1,6 @@
-package dto
+package entity
 
-type StorageShortURLEntry struct {
+type ShortURLEntity struct {
 	UUID     string `json:"uuid"`
 	ShortURI string `json:"short_url"`
 	LongURL  string `json:"original_url"`

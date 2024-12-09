@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
+	"github.com/vkhrushchev/urlshortener/internal/app/repository"
+	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
 
 	"github.com/vkhrushchev/urlshortener/internal/app"
 	"github.com/vkhrushchev/urlshortener/internal/app/controller"
 	"github.com/vkhrushchev/urlshortener/internal/app/db"
-	"github.com/vkhrushchev/urlshortener/internal/app/storage"
 	"go.uber.org/zap"
 )
 
@@ -17,12 +18,17 @@ func main() {
 
 	dbLookup, err := db.NewDBLookup(flags.databaseDSN)
 	if err != nil {
-		log.Fatalf("main: ошибка при инициализации DBLookup: %v", err)
+		log.Fatalf("main: error when init DBLookup: %v", err)
 	}
 
-	storage := initStorage(dbLookup, flags.fileStoragePath)
-	appController := controller.NewAppController(flags.baseURL, storage)
-	apiController := controller.NewAPIController(flags.baseURL, storage)
+	shortURLRepo := initShortURLRepository(dbLookup, flags.fileStoragePath)
+
+	createShortURLUseCase := usecase.NewCreateShortURLUseCase(shortURLRepo)
+	getShortURLUseCase := usecase.NewGetShortURLUseCase(shortURLRepo)
+	deleteShortURLUseCase := usecase.NewDeleteShortURLUseCase(shortURLRepo)
+
+	appController := controller.NewAppController(flags.baseURL, createShortURLUseCase, getShortURLUseCase)
+	apiController := controller.NewAPIController(flags.baseURL, createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
 	healthController := controller.NewHealthController(dbLookup)
 
 	shortenerApp := app.NewURLShortenerApp(flags.runAddr, appController, apiController, healthController)
@@ -30,31 +36,38 @@ func main() {
 	shortenerApp.RegisterHandlers()
 	err = shortenerApp.Run()
 	if err != nil {
-		log.Fatalf("main: ошибка при инициализации FileJsonStorage: %v", err)
+		log.Fatalf("main: error when run application: %v", err)
 	}
 }
 
-func initStorage(dbLookup *db.DBLookup, fileStoragePath string) storage.Storage {
-	var store storage.Storage
+func initShortURLRepository(dbLookup *db.DBLookup, fileStoragePath string) repository.IShortURLRepository {
+	var repo repository.IShortURLRepository
 	var err error
+
 	if flags.databaseDSN != "" {
-		store = storage.NewDBStorage(dbLookup)
+		repo = repository.NewDBShortURLRepository(dbLookup)
 		err = dbLookup.InitDB(context.Background())
 		if err != nil {
-			log.Fatalf("main: ошибка при инициализации структуры БД: %v", err)
+			log.Fatalf("main: failure to init database scheme: %v", err)
 		}
+
+		log.Infow("main: success init of DBShortURLRepository")
 	}
 
-	if store == nil && flags.fileStoragePath != "" {
-		store, err = storage.NewFileJSONStorage(fileStoragePath)
+	if repo == nil && flags.fileStoragePath != "" {
+		repo, err = repository.NewJSONFileShortURLRepository(fileStoragePath)
 		if err != nil {
-			log.Fatalf("main: ошибка при инициализации FileJsonStorage: %v", err)
+			log.Fatalf("main: failure to init JSONFileShortURLRepository: %v", err)
 		}
+
+		log.Infow("main: success init of JSONFileShortURLRepository")
 	}
 
-	if store == nil {
-		store = storage.NewInMemoryStorage()
+	if repo == nil {
+		repo = repository.NewInMemoryShortURLRepository()
+
+		log.Infow("main: success init of InMemoryShortURLRepository")
 	}
 
-	return store
+	return repo
 }
