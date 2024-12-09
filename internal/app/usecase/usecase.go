@@ -35,7 +35,7 @@ func NewCreateShortURLUseCase(repo repository.IShortURLRepository) *CreateShortU
 
 func (uc *CreateShortURLUseCase) CreateShortURL(ctx context.Context, url string) (domain.ShortURLDomain, error) {
 	userID := ctx.Value(middleware.UserIDContextKey).(string)
-	log.Infow("use_case: create short URL", "url", url, "userID", userID)
+	log.Infow("use_case: CreateShortURL", "url", url, "userID", userID)
 
 	shortURLEntity := entity.ShortURLEntity{
 		UUID:     uuid.NewString(),
@@ -48,7 +48,7 @@ func (uc *CreateShortURLUseCase) CreateShortURL(ctx context.Context, url string)
 	shortURLEntity, err := uc.repo.SaveShortURL(ctx, shortURLEntity)
 	if err != nil && errors.Is(err, repository.ErrConflict) {
 		log.Infow("use_case: conflict with existed entity", "url", url, "userID", userID)
-		return domain.ShortURLDomain{}, ErrConflict
+		return domain.ShortURLDomain(shortURLEntity), ErrConflict
 	} else if err != nil {
 		log.Errorw("use_case: failed to save short url", "error", err)
 		return domain.ShortURLDomain{}, ErrUnexpected

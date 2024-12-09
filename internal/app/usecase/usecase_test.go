@@ -52,15 +52,26 @@ func (suite *CreateShortURLUseCaseTestSuite) TestCreateShortURL_success() {
 }
 
 func (suite *CreateShortURLUseCaseTestSuite) TestCreateShortURL_conflict() {
+	testUserID := uuid.NewString()
+	testShortURLEntity := entity.ShortURLEntity{
+		UUID:     uuid.NewString(),
+		ShortURI: "abc",
+		LongURL:  "https://ya.ru",
+		UserID:   testUserID,
+		Deleted:  false,
+	}
+
 	suite.repositoryMock.EXPECT().
 		SaveShortURL(gomock.Any(), gomock.Any()).
-		Return(entity.ShortURLEntity{}, repository.ErrConflict)
+		Return(testShortURLEntity, repository.ErrConflict)
 
 	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, uuid.NewString())
-	_, err := suite.useCase.CreateShortURL(testCtx, "https://ya.ru")
+	shortURLDomain, err := suite.useCase.CreateShortURL(testCtx, "https://ya.ru")
 
 	suite.NotNilf(err, "err cannot be nil")
 	suite.True(errors.Is(err, ErrConflict), "err should be ErrConflict")
+	suite.NotNilf(shortURLDomain, "shortURLDomain can not be nil")
+	suite.NotEmptyf(shortURLDomain.ShortURI, "shortURLDomain.ShortURI can not be empty")
 }
 
 func (suite *CreateShortURLUseCaseTestSuite) TestCreateShortURL_unexpected_error() {
