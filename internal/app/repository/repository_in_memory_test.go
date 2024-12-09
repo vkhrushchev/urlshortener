@@ -67,7 +67,7 @@ func (suite *InMemoryRepositoryTestSuite) TestGetShortURLByShortURI_not_found() 
 
 func (suite *InMemoryRepositoryTestSuite) TestSaveShortURL_success() {
 	testUserID := uuid.NewString()
-	testShortURL := entity.ShortURLEntity{
+	testShortURL := &entity.ShortURLEntity{
 		UUID:     uuid.NewString(),
 		ShortURI: "ghi",
 		LongURL:  "https://mail.ru",
@@ -88,7 +88,7 @@ func (suite *InMemoryRepositoryTestSuite) TestSaveShortURL_success() {
 }
 
 func (suite *InMemoryRepositoryTestSuite) TestSaveShortURL_existed_user() {
-	testShortURL := entity.ShortURLEntity{
+	testShortURL := &entity.ShortURLEntity{
 		UUID:     uuid.NewString(),
 		ShortURI: "ghi",
 		LongURL:  "https://mail.ru",

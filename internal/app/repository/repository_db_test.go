@@ -71,7 +71,7 @@ func (s *DBShortURLRepositoryTestSuite) TestGetShortURLByShortURI_not_found() {
 func (s *DBShortURLRepositoryTestSuite) TestSaveShortURL_conflict() {
 	testUserID := uuid.NewString()
 	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
-	testShortURL := entity.ShortURLEntity{
+	testShortURL := &entity.ShortURLEntity{
 		UUID:     uuid.NewString(),
 		ShortURI: util.RandStringRunes(10),
 		LongURL:  "https://mail.ru/" + util.RandStringRunes(10),
@@ -122,7 +122,7 @@ func (s *DBShortURLRepositoryTestSuite) TestSaveShortURLs_success() {
 func (s *DBShortURLRepositoryTestSuite) TestFull() {
 	testUserID := uuid.NewString()
 	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
-	testShortURL := entity.ShortURLEntity{
+	testShortURL := &entity.ShortURLEntity{
 		UUID:     uuid.NewString(),
 		ShortURI: util.RandStringRunes(10),
 		LongURL:  "https://mail.ru/" + util.RandStringRunes(10),
@@ -134,22 +134,22 @@ func (s *DBShortURLRepositoryTestSuite) TestFull() {
 	if err != nil {
 		s.Fail("unexpected error when save ShortURLEntity: %v", err)
 	}
-	s.NotNil(savedShortURL, "savedShortURL should not be nil")
+	s.NotNil(savedShortURL, "shortURL should not be nil")
 
-	savedShortURL, err = s.repository.GetShortURLByShortURI(testCtx, savedShortURL.ShortURI)
+	shortURL, err := s.repository.GetShortURLByShortURI(testCtx, savedShortURL.ShortURI)
 	if err != nil {
 		s.Fail("unexpected error when get ShortURLEntity by shortURI: %v", err)
 	}
-	s.NotNil(savedShortURL, "savedShortURL should not be nil")
+	s.NotNil(shortURL, "shortURL should not be nil")
 
-	savedShortURLsByUserID, err := s.repository.GetShortURLsByUserID(testCtx, savedShortURL.UserID)
+	savedShortURLsByUserID, err := s.repository.GetShortURLsByUserID(testCtx, shortURL.UserID)
 	if err != nil {
 		s.Fail("unexpected error when get ShortURLEntity by shortURI: %v", err)
 	}
 	s.NotNil(savedShortURLsByUserID, "savedShortURLsByUserID should not be nil")
 	s.Equal(1, len(savedShortURLsByUserID), "savedShortURLsByUserID len mast equal 1")
 
-	s.repository.DeleteShortURLsByShortURIs(testCtx, []string{savedShortURL.ShortURI, "not_existed_shortURL"})
+	s.repository.DeleteShortURLsByShortURIs(testCtx, []string{shortURL.ShortURI, "not_existed_shortURL"})
 	if err != nil {
 		s.Fail("unexpected error when delete ShortURLEntities by shortURIs: %v", err)
 	}

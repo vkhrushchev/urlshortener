@@ -35,7 +35,7 @@ func (s *JSONFileShortURLRepositoryTestSuite) TearDownTest() {
 
 func (s *JSONFileShortURLRepositoryTestSuite) TestSaveShortURL() {
 	testUserID := uuid.NewString()
-	testShortURL := entity.ShortURLEntity{
+	testShortURL := &entity.ShortURLEntity{
 		UUID:     uuid.NewString(),
 		ShortURI: "ghi",
 		LongURL:  "https://mail.ru",
