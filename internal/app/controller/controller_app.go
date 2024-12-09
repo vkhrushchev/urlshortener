@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/vkhrushchev/urlshortener/internal/app/use_case"
+	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
 	"io"
 	"net/http"
 	"strings"
@@ -15,14 +15,14 @@ import (
 
 type AppController struct {
 	baseURL               string
-	createShortURLUseCase use_case.ICreateShortURLUseCase
-	getShortURLUseCase    use_case.IGetShortURLUseCase
+	createShortURLUseCase usecase.ICreateShortURLUseCase
+	getShortURLUseCase    usecase.IGetShortURLUseCase
 }
 
 func NewAppController(
 	baseURL string,
-	createShortURLUseCase use_case.ICreateShortURLUseCase,
-	getShortURLUseCase use_case.IGetShortURLUseCase) *AppController {
+	createShortURLUseCase usecase.ICreateShortURLUseCase,
+	getShortURLUseCase usecase.IGetShortURLUseCase) *AppController {
 	return &AppController{
 		baseURL:               baseURL,
 		createShortURLUseCase: createShortURLUseCase,
@@ -50,7 +50,7 @@ func (c *AppController) CreateShortURLHandler(w http.ResponseWriter, r *http.Req
 
 	longURL := strings.TrimSpace(bodyBuffer.String())
 	shortURLDomain, err := c.createShortURLUseCase.CreateShortURL(r.Context(), longURL)
-	if err != nil && !errors.Is(err, use_case.ErrConflict) {
+	if err != nil && !errors.Is(err, usecase.ErrConflict) {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Errorw(err.Error())
 		_, err = w.Write([]byte(err.Error()))
@@ -68,7 +68,7 @@ func (c *AppController) CreateShortURLHandler(w http.ResponseWriter, r *http.Req
 	)
 
 	w.Header().Add("Content-Type", "plain/text")
-	if err != nil && errors.Is(err, use_case.ErrConflict) {
+	if err != nil && errors.Is(err, usecase.ErrConflict) {
 		w.WriteHeader(http.StatusConflict)
 	} else {
 		w.WriteHeader(http.StatusCreated)
@@ -87,7 +87,7 @@ func (c *AppController) GetURLHandler(w http.ResponseWriter, r *http.Request) {
 	shortURI := chi.URLParam(r, "id")
 
 	shortURLEntry, err := c.getShortURLUseCase.GetShortURL(r.Context(), shortURI)
-	if err != nil && !errors.Is(err, use_case.ErrNotFound) {
+	if err != nil && !errors.Is(err, usecase.ErrNotFound) {
 		log.Errorw(
 			"app: error when get original url from storage",
 			"error", err.Error(),
@@ -98,7 +98,7 @@ func (c *AppController) GetURLHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err != nil && errors.Is(err, use_case.ErrNotFound) {
+	if err != nil && errors.Is(err, usecase.ErrNotFound) {
 		w.Header().Add("Content-Type", "plain/text")
 		w.WriteHeader(http.StatusNotFound)
 		return

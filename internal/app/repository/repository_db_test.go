@@ -142,12 +142,12 @@ func (s *DBShortURLRepositoryTestSuite) TestFull() {
 	}
 	s.NotNil(savedShortURL, "savedShortURL should not be nil")
 
-	savedShortURLsByUserId, err := s.repository.GetShortURLsByUserID(testCtx, savedShortURL.UserID)
+	savedShortURLsByUserID, err := s.repository.GetShortURLsByUserID(testCtx, savedShortURL.UserID)
 	if err != nil {
 		s.Fail("unexpected error when get ShortURLEntity by shortURI: %v", err)
 	}
-	s.NotNil(savedShortURLsByUserId, "savedShortURLsByUserId should not be nil")
-	s.Equal(1, len(savedShortURLsByUserId), "savedShortURLsByUserId len mast equal 1")
+	s.NotNil(savedShortURLsByUserID, "savedShortURLsByUserID should not be nil")
+	s.Equal(1, len(savedShortURLsByUserID), "savedShortURLsByUserID len mast equal 1")
 
 	s.repository.DeleteShortURLsByShortURIs(testCtx, []string{savedShortURL.ShortURI, "not_existed_shortURL"})
 	if err != nil {

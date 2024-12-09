@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/vkhrushchev/urlshortener/internal/app/domain"
-	"github.com/vkhrushchev/urlshortener/internal/app/use_case"
+	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
 	"net/http"
 
 	"github.com/vkhrushchev/urlshortener/internal/app/dto"
@@ -16,16 +16,16 @@ import (
 
 type APIController struct {
 	baseURL               string
-	createShortURLUseCase use_case.ICreateShortURLUseCase
-	getShortURLUseCase    use_case.IGetShortURLUseCase
-	deleteShortURLUseCase use_case.IDeleteShortURLUseCase
+	createShortURLUseCase usecase.ICreateShortURLUseCase
+	getShortURLUseCase    usecase.IGetShortURLUseCase
+	deleteShortURLUseCase usecase.IDeleteShortURLUseCase
 }
 
 func NewAPIController(
 	baseURL string,
-	createShortURLUseCase use_case.ICreateShortURLUseCase,
-	getShortURLUseCase use_case.IGetShortURLUseCase,
-	deleteShortURLUseCase use_case.IDeleteShortURLUseCase) *APIController {
+	createShortURLUseCase usecase.ICreateShortURLUseCase,
+	getShortURLUseCase usecase.IGetShortURLUseCase,
+	deleteShortURLUseCase usecase.IDeleteShortURLUseCase) *APIController {
 	return &APIController{
 		baseURL:               baseURL,
 		createShortURLUseCase: createShortURLUseCase,
@@ -65,7 +65,7 @@ func (c *APIController) CreateShortURLHandler(w http.ResponseWriter, r *http.Req
 
 	longURL := apiRequest.URL
 	shortURLDomain, err := c.createShortURLUseCase.CreateShortURL(r.Context(), longURL)
-	if err != nil && !errors.Is(err, use_case.ErrConflict) {
+	if err != nil && !errors.Is(err, usecase.ErrConflict) {
 		apiResponse.ErrorStatus = fmt.Sprintf("%d", http.StatusInternalServerError)
 		apiResponse.ErrorDescription = fmt.Sprintf("Error when saving short URL: %s", err.Error())
 
@@ -79,7 +79,7 @@ func (c *APIController) CreateShortURLHandler(w http.ResponseWriter, r *http.Req
 	apiResponse.Result = util.GetShortURL(c.baseURL, shortURLDomain.ShortURI)
 
 	w.Header().Set("Content-Type", "application/json")
-	if err != nil && errors.Is(err, use_case.ErrConflict) {
+	if err != nil && errors.Is(err, usecase.ErrConflict) {
 		w.WriteHeader(http.StatusConflict)
 	} else {
 		w.WriteHeader(http.StatusCreated)

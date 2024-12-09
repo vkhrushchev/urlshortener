@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"github.com/vkhrushchev/urlshortener/internal/app/repository"
-	"github.com/vkhrushchev/urlshortener/internal/app/use_case"
+	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
 
 	"github.com/vkhrushchev/urlshortener/internal/app"
 	"github.com/vkhrushchev/urlshortener/internal/app/controller"
@@ -23,9 +23,9 @@ func main() {
 
 	shortUrlRepo := initShortURLRepository(dbLookup, flags.fileStoragePath)
 
-	createShortURLUseCase := use_case.NewCreateShortURLUseCase(shortUrlRepo)
-	getShortURLUseCase := use_case.NewGetShortURLUseCase(shortUrlRepo)
-	deleteShortURLUseCase := use_case.NewDeleteShortURLUseCase(shortUrlRepo)
+	createShortURLUseCase := usecase.NewCreateShortURLUseCase(shortUrlRepo)
+	getShortURLUseCase := usecase.NewGetShortURLUseCase(shortUrlRepo)
+	deleteShortURLUseCase := usecase.NewDeleteShortURLUseCase(shortUrlRepo)
 
 	appController := controller.NewAppController(flags.baseURL, createShortURLUseCase, getShortURLUseCase)
 	apiController := controller.NewAPIController(flags.baseURL, createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
