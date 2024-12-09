@@ -10,10 +10,13 @@ import (
 
 var log = zap.Must(zap.NewDevelopment()).Sugar()
 
+// ErrConflict - короткая ссылка уже существует
+// ErrNotFound - короткая ссылка не найдена
+// ErrUnexpected - непредвиденная ошибка
 var (
-	ErrConflict   = errors.New("conflict")         // Короткая ссылка уже существует
-	ErrNotFound   = errors.New("entity not found") // Короткая ссылка не найдена
-	ErrUnexpected = errors.New("unexpected error") // Непредвиденная ошибка
+	ErrConflict   = errors.New("conflict")
+	ErrNotFound   = errors.New("entity not found")
+	ErrUnexpected = errors.New("unexpected error")
 )
 
 // IShortURLRepository интерфейс репозитория для сущности ShortURL
