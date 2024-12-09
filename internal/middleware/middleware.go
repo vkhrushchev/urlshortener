@@ -177,8 +177,9 @@ func GzipMiddleware(next func(w http.ResponseWriter, r *http.Request)) func(w ht
 // ShortenerContextKey тип для ключей контекста приложения Shortener
 type ShortenerContextKey string
 
+// UserIDContextKey - Ключ для хранения идентификатора пользователя
 const (
-	UserIDContextKey ShortenerContextKey = "userID" // Ключ для хранения идентификатора пользователя
+	UserIDContextKey ShortenerContextKey = "userID"
 )
 const userIDSignatureSalt = "mega_puper_salt"
 
