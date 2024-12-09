@@ -164,14 +164,14 @@ func GzipMiddleware(next func(w http.ResponseWriter, r *http.Request)) func(w ht
 	}
 }
 
-type ShoretenerContextKey string
+type ShortenerContextKey string
 
 const (
-	UserIDContextKey ShoretenerContextKey = "userID"
+	UserIDContextKey ShortenerContextKey = "userID"
 )
 const userIDSignatureSalt = "mega_puper_salt"
 
-func UserIDCoockieMiddleware(next func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
+func UserIDCookieMiddleware(next func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var userIDCookie *http.Cookie
 		var userIDSignatureCookie *http.Cookie

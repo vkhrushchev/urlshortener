@@ -4,28 +4,33 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/vkhrushchev/urlshortener/internal/app/use_case"
 	"io"
 	"net/http"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/vkhrushchev/urlshortener/internal/app/storage"
 	"github.com/vkhrushchev/urlshortener/internal/util"
 )
 
-type AppContoller struct {
-	baseURL string
-	storage storage.Storage
+type AppController struct {
+	baseURL               string
+	createShortURLUseCase use_case.ICreateShortURLUseCase
+	getShortURLUseCase    use_case.IGetShortURLUseCase
 }
 
-func NewAppController(baseURL string, storage storage.Storage) *AppContoller {
-	return &AppContoller{
-		baseURL: baseURL,
-		storage: storage,
+func NewAppController(
+	baseURL string,
+	createShortURLUseCase use_case.ICreateShortURLUseCase,
+	getShortURLUseCase use_case.IGetShortURLUseCase) *AppController {
+	return &AppController{
+		baseURL:               baseURL,
+		createShortURLUseCase: createShortURLUseCase,
+		getShortURLUseCase:    getShortURLUseCase,
 	}
 }
 
-func (c *AppContoller) CreateShortURLHandler(w http.ResponseWriter, r *http.Request) {
+func (c *AppController) CreateShortURLHandler(w http.ResponseWriter, r *http.Request) {
 	var bodyBuffer bytes.Buffer
 	_, err := bodyBuffer.ReadFrom(r.Body)
 	if err != nil && !errors.Is(err, io.EOF) {
@@ -44,8 +49,8 @@ func (c *AppContoller) CreateShortURLHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	longURL := strings.TrimSpace(bodyBuffer.String())
-	shortURLEntry, err := c.storage.SaveURL(r.Context(), longURL)
-	if err != nil && !errors.Is(err, storage.ErrConflictOnUniqueConstraint) {
+	shortURLDomain, err := c.createShortURLUseCase.CreateShortURL(r.Context(), longURL)
+	if err != nil && !errors.Is(err, use_case.ErrConflict) {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Errorw(err.Error())
 		_, err = w.Write([]byte(err.Error()))
@@ -58,18 +63,18 @@ func (c *AppContoller) CreateShortURLHandler(w http.ResponseWriter, r *http.Requ
 
 	log.Infow(
 		"app: short_url_added",
-		"shortURI", shortURLEntry.ShortURI,
-		"longURL", shortURLEntry.LongURL,
+		"shortURI", shortURLDomain.ShortURI,
+		"longURL", shortURLDomain.LongURL,
 	)
 
 	w.Header().Add("Content-Type", "plain/text")
-	if err != nil && errors.Is(err, storage.ErrConflictOnUniqueConstraint) {
+	if err != nil && errors.Is(err, use_case.ErrConflict) {
 		w.WriteHeader(http.StatusConflict)
 	} else {
 		w.WriteHeader(http.StatusCreated)
 	}
 
-	shortURL := util.GetShortURL(c.baseURL, shortURLEntry.ShortURI)
+	shortURL := util.GetShortURL(c.baseURL, shortURLDomain.ShortURI)
 
 	_, err = w.Write([]byte(shortURL))
 	if err != nil {
@@ -78,11 +83,11 @@ func (c *AppContoller) CreateShortURLHandler(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-func (c *AppContoller) GetURLHandler(w http.ResponseWriter, r *http.Request) {
+func (c *AppController) GetURLHandler(w http.ResponseWriter, r *http.Request) {
 	shortURI := chi.URLParam(r, "id")
 
-	shortURLEntry, err := c.storage.GetURLByShortURI(r.Context(), shortURI)
-	if err != nil {
+	shortURLEntry, err := c.getShortURLUseCase.GetShortURL(r.Context(), shortURI)
+	if err != nil && !errors.Is(err, use_case.ErrNotFound) {
 		log.Errorw(
 			"app: error when get original url from storage",
 			"error", err.Error(),
@@ -93,7 +98,7 @@ func (c *AppContoller) GetURLHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if shortURLEntry == nil {
+	if err != nil && errors.Is(err, use_case.ErrNotFound) {
 		w.Header().Add("Content-Type", "plain/text")
 		w.WriteHeader(http.StatusNotFound)
 		return

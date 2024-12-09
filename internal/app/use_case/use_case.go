@@ -107,12 +107,11 @@ func NewGetShortURLUseCase(r repository.IShortURLRepository) *GetShortURLUseCase
 }
 
 func (uc *GetShortURLUseCase) GetShortURL(ctx context.Context, shortURI string) (domain.ShortURLDomain, error) {
-	userID := ctx.Value(middleware.UserIDContextKey).(string)
-	log.Infow("use_case: get short URL", "shortURI", shortURI, "userID", userID)
+	log.Infow("use_case: get short URL", "shortURI", shortURI)
 
 	shortURLEntity, err := uc.repository.GetShortURLByShortURI(ctx, shortURI)
 	if err != nil && errors.Is(err, repository.ErrNotFound) {
-		log.Infow("use_case: short url not found", "shortURI", shortURI, "userID", userID)
+		log.Infow("use_case: short url not found", "shortURI", shortURI)
 		return domain.ShortURLDomain{}, ErrNotFound
 	} else if err != nil {
 		log.Errorw("use_case: failed to get short url", "error", err)

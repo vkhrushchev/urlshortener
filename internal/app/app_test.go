@@ -3,6 +3,8 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"github.com/vkhrushchev/urlshortener/internal/app/repository"
+	"github.com/vkhrushchev/urlshortener/internal/app/use_case"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -14,14 +16,18 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/vkhrushchev/urlshortener/internal/app/controller"
 	"github.com/vkhrushchev/urlshortener/internal/app/dto"
-	"github.com/vkhrushchev/urlshortener/internal/app/storage"
 	"github.com/vkhrushchev/urlshortener/internal/middleware"
 )
 
 func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
-	storage := storage.NewInMemoryStorage()
-	appController := controller.NewAppController("", storage)
-	apiController := controller.NewAPIController("", storage)
+	shortUrlRepo := repository.NewInMemoryShortURLRepository()
+
+	createShortURLUseCase := use_case.NewCreateShortURLUseCase(shortUrlRepo)
+	getShortURLUseCase := use_case.NewGetShortURLUseCase(shortUrlRepo)
+	deleteShortURLUseCase := use_case.NewDeleteShortURLUseCase(shortUrlRepo)
+
+	appController := controller.NewAppController("", createShortURLUseCase, getShortURLUseCase)
+	apiController := controller.NewAPIController("", createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
 
@@ -62,9 +68,14 @@ func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
 }
 
 func TestURLShortenerApp_getURLHandler(t *testing.T) {
-	storage := storage.NewInMemoryStorage()
-	appController := controller.NewAppController("", storage)
-	apiController := controller.NewAPIController("", storage)
+	shortUrlRepo := repository.NewInMemoryShortURLRepository()
+
+	createShortURLUseCase := use_case.NewCreateShortURLUseCase(shortUrlRepo)
+	getShortURLUseCase := use_case.NewGetShortURLUseCase(shortUrlRepo)
+	deleteShortURLUseCase := use_case.NewDeleteShortURLUseCase(shortUrlRepo)
+
+	appController := controller.NewAppController("", createShortURLUseCase, getShortURLUseCase)
+	apiController := controller.NewAPIController("", createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
 
@@ -72,7 +83,7 @@ func TestURLShortenerApp_getURLHandler(t *testing.T) {
 	app.RegisterHandlers()
 
 	// добавляем подготовленные данные для тестов
-	shortURLEntry, err := storage.SaveURL(
+	shortURLEntry, err := createShortURLUseCase.CreateShortURL(
 		context.WithValue(context.Background(), middleware.UserIDContextKey, uuid.NewString()),
 		"https://google.com",
 	)
@@ -119,10 +130,15 @@ func TestURLShortenerApp_getURLHandler(t *testing.T) {
 	}
 }
 
-func TestURLShortnerApp_createShortURLHandlerAPI(t *testing.T) {
-	storage := storage.NewInMemoryStorage()
-	appController := controller.NewAppController("", storage)
-	apiController := controller.NewAPIController("", storage)
+func TestURLShortenerApp_createShortURLHandlerAPI(t *testing.T) {
+	shortUrlRepo := repository.NewInMemoryShortURLRepository()
+
+	createShortURLUseCase := use_case.NewCreateShortURLUseCase(shortUrlRepo)
+	getShortURLUseCase := use_case.NewGetShortURLUseCase(shortUrlRepo)
+	deleteShortURLUseCase := use_case.NewDeleteShortURLUseCase(shortUrlRepo)
+
+	appController := controller.NewAppController("", createShortURLUseCase, getShortURLUseCase)
+	apiController := controller.NewAPIController("", createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
 
@@ -207,10 +223,15 @@ func TestURLShortnerApp_createShortURLHandlerAPI(t *testing.T) {
 	}
 }
 
-func TestURLShortnerApp_createShortURLBatchHandlerAPI(t *testing.T) {
-	storage := storage.NewInMemoryStorage()
-	appController := controller.NewAppController("", storage)
-	apiController := controller.NewAPIController("", storage)
+func TestURLShortenerApp_createShortURLBatchHandlerAPI(t *testing.T) {
+	shortUrlRepo := repository.NewInMemoryShortURLRepository()
+
+	createShortURLUseCase := use_case.NewCreateShortURLUseCase(shortUrlRepo)
+	getShortURLUseCase := use_case.NewGetShortURLUseCase(shortUrlRepo)
+	deleteShortURLUseCase := use_case.NewDeleteShortURLUseCase(shortUrlRepo)
+
+	appController := controller.NewAppController("", createShortURLUseCase, getShortURLUseCase)
+	apiController := controller.NewAPIController("", createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
 

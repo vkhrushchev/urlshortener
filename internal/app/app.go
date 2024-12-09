@@ -14,7 +14,7 @@ import (
 var log = zap.Must(zap.NewProduction()).Sugar()
 
 type URLShortenerApp struct {
-	appController    *controller.AppContoller
+	appController    *controller.AppController
 	apiController    *controller.APIController
 	healthController *controller.HealthController
 	router           chi.Router
@@ -23,7 +23,7 @@ type URLShortenerApp struct {
 
 func NewURLShortenerApp(
 	runAddr string,
-	appController *controller.AppContoller,
+	appController *controller.AppController,
 	apiController *controller.APIController,
 	healthController *controller.HealthController) *URLShortenerApp {
 	return &URLShortenerApp{
@@ -39,7 +39,7 @@ func (a *URLShortenerApp) RegisterHandlers() {
 	a.router.Post(
 		"/",
 		middleware.LogRequestMiddleware(
-			middleware.UserIDCoockieMiddleware(
+			middleware.UserIDCookieMiddleware(
 				middleware.GzipMiddleware(a.appController.CreateShortURLHandler))))
 	a.router.Get(
 		"/{id}",
@@ -47,12 +47,12 @@ func (a *URLShortenerApp) RegisterHandlers() {
 	a.router.Post(
 		"/api/shorten",
 		middleware.LogRequestMiddleware(
-			middleware.UserIDCoockieMiddleware(
+			middleware.UserIDCookieMiddleware(
 				middleware.GzipMiddleware(a.apiController.CreateShortURLHandler))))
 	a.router.Post(
 		"/api/shorten/batch",
 		middleware.LogRequestMiddleware(
-			middleware.UserIDCoockieMiddleware(
+			middleware.UserIDCookieMiddleware(
 				middleware.GzipMiddleware(a.apiController.CreateShortURLBatchHandler))))
 	a.router.Get(
 		"/api/user/urls",
