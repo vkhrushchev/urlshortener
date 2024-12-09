@@ -3,12 +3,13 @@ package repository
 import (
 	"context"
 	"errors"
+	"testing"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
 	"github.com/vkhrushchev/urlshortener/internal/app/entity"
 	"github.com/vkhrushchev/urlshortener/internal/middleware"
 	"github.com/vkhrushchev/urlshortener/internal/util"
-	"testing"
 )
 
 type InMemoryRepositoryTestSuite struct {

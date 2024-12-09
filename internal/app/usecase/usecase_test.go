@@ -3,6 +3,8 @@ package usecase
 import (
 	"context"
 	"errors"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
@@ -12,7 +14,6 @@ import (
 	mock_repository "github.com/vkhrushchev/urlshortener/internal/app/repository/mock"
 	"github.com/vkhrushchev/urlshortener/internal/middleware"
 	"github.com/vkhrushchev/urlshortener/internal/util"
-	"testing"
 )
 
 type CreateShortURLUseCaseTestSuite struct {

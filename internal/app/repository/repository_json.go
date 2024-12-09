@@ -6,8 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/vkhrushchev/urlshortener/internal/app/entity"
 	"os"
+
+	"github.com/vkhrushchev/urlshortener/internal/app/entity"
 )
 
 type JSONFileShortURLRepository struct {
