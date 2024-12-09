@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+
 	"github.com/vkhrushchev/urlshortener/internal/app/repository"
 	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
 
@@ -11,7 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var log = zap.Must(zap.NewProduction()).Sugar()
+var log = zap.Must(zap.NewDevelopment()).Sugar()
 
 func main() {
 	parseFlags()

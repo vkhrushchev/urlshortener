@@ -1,0 +1,336 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Сервис сокращения ссылок",
+        "title": "Shortener API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "paths": {
+        "/": {
+            "post": {
+                "produces": [
+                    "text/plain"
+                ],
+                "summary": "Создание короткой ссылки",
+                "parameters": [
+                    {
+                        "description": "ссылка которую требуется сократить",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "409": {
+                        "description": "короткая ссылка уже существует",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "внутренняя ошибка сервиса",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/shorten": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Создание короткой ссылки",
+                "parameters": [
+                    {
+                        "description": "запрос на создание короткой ссылки",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.APICreateShortURLRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.APICreateShortURLResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "ошибка в формате запроса",
+                        "schema": {
+                            "$ref": "#/definitions/dto.APICreateShortURLResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "короткая ссылка уже существует",
+                        "schema": {
+                            "$ref": "#/definitions/dto.APICreateShortURLResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "внутренняя ошибка сервиса",
+                        "schema": {
+                            "$ref": "#/definitions/dto.APICreateShortURLResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/shorten/batch": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Создание коротких ссылок пачкой",
+                "parameters": [
+                    {
+                        "description": "запрос на создание коротких ссылок пачкой",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.APICreateShortURLBatchRequestEntry"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.APICreateShortURLBatchResponseEntry"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "ошибка в формате запроса",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "внутренняя ошибка сервиса",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/urls": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Получение коротких ссылок созданных пользователем",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.APIGetAllURLByUserIDResponseEntry"
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "у пользователя нет коротких ссылок",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "ошибка в формате запроса",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "внутренняя ошибка сервиса",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Удаление коротких ссылок",
+                "parameters": [
+                    {
+                        "description": "список идентификаторов коротких ссылок",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "ошибка в формате запроса",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "внутренняя ошибка сервиса",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/ping": {
+            "get": {
+                "produces": [
+                    "text/plain"
+                ],
+                "summary": "получить короткую ссылку",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "500": {
+                        "description": "внутренняя ошибка сервиса",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/{shortURI}": {
+            "get": {
+                "produces": [
+                    "text/plain"
+                ],
+                "summary": "получить короткую ссылку",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "идентификатор короткой ссылки",
+                        "name": "shortURI",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "307": {
+                        "description": "Temporary Redirect",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "короткая ссылка не найдена",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "410": {
+                        "description": "короткая ссылка удалена",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "внутренняя ошибка сервиса",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "dto.APICreateShortURLBatchRequestEntry": {
+            "type": "object",
+            "properties": {
+                "correlation_id": {
+                    "type": "string"
+                },
+                "original_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.APICreateShortURLBatchResponseEntry": {
+            "type": "object",
+            "properties": {
+                "correlation_id": {
+                    "type": "string"
+                },
+                "short_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.APICreateShortURLRequest": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.APICreateShortURLResponse": {
+            "type": "object",
+            "properties": {
+                "error_description": {
+                    "type": "string"
+                },
+                "error_status": {
+                    "type": "string"
+                },
+                "result": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.APIGetAllURLByUserIDResponseEntry": {
+            "type": "object",
+            "properties": {
+                "original_url": {
+                    "type": "string"
+                },
+                "short_url": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

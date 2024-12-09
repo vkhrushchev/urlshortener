@@ -4,12 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"sync"
+
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vkhrushchev/urlshortener/internal/app/db"
 	"github.com/vkhrushchev/urlshortener/internal/app/entity"
 	"github.com/vkhrushchev/urlshortener/internal/middleware"
-	"sync"
 )
 
 const (
@@ -20,14 +21,19 @@ const (
 	sqlUpdateIsDeleted     = "UPDATE short_url SET is_deleted = true WHERE is_deleted = false AND short_url = $1 AND user_id = $2"
 )
 
+// DBShortURLRepository структура для хранения ссылки на db.DBLookup.
+//
+// Реализует интерфейс IShortURLRepository для хранения коротких ссылок в БД
 type DBShortURLRepository struct {
 	dbLookup *db.DBLookup
 }
 
+// NewDBShortURLRepository создает экземпляр структуры DBShortURLRepository
 func NewDBShortURLRepository(dbLookup *db.DBLookup) *DBShortURLRepository {
 	return &DBShortURLRepository{dbLookup: dbLookup}
 }
 
+// GetShortURLByShortURI возвращает короткую ссылку по shortURI
 func (r *DBShortURLRepository) GetShortURLByShortURI(ctx context.Context, shortURI string) (entity.ShortURLEntity, error) {
 	dbLookup := r.dbLookup.GetDB()
 
@@ -57,7 +63,8 @@ func (r *DBShortURLRepository) GetShortURLByShortURI(ctx context.Context, shortU
 	return shortURLEntity, nil
 }
 
-func (r *DBShortURLRepository) SaveShortURL(ctx context.Context, shortURLEntity entity.ShortURLEntity) (entity.ShortURLEntity, error) {
+// SaveShortURL сохраняет короткую ссылку
+func (r *DBShortURLRepository) SaveShortURL(ctx context.Context, shortURLEntity *entity.ShortURLEntity) (*entity.ShortURLEntity, error) {
 	dbLookup := r.dbLookup.GetDB()
 
 	_, err := dbLookup.ExecContext(
@@ -77,7 +84,7 @@ func (r *DBShortURLRepository) SaveShortURL(ctx context.Context, shortURLEntity 
 				sqlRow := dbLookup.QueryRowContext(ctx, sqlSelectByOriginalURL, shortURLEntity.LongURL)
 				if sqlRow.Err() != nil {
 					log.Errorw("repository: unexpected error", "err", err)
-					return entity.ShortURLEntity{}, ErrUnexpected
+					return nil, ErrUnexpected
 				}
 
 				err = sqlRow.Scan(
@@ -89,7 +96,7 @@ func (r *DBShortURLRepository) SaveShortURL(ctx context.Context, shortURLEntity 
 				)
 				if err != nil {
 					log.Errorw("repository: unexpected error", "err", err)
-					return entity.ShortURLEntity{}, ErrUnexpected
+					return nil, ErrUnexpected
 				}
 
 				return shortURLEntity, ErrConflict
@@ -97,12 +104,13 @@ func (r *DBShortURLRepository) SaveShortURL(ctx context.Context, shortURLEntity 
 		}
 
 		log.Errorw("repository: unexpected error", "err", err)
-		return entity.ShortURLEntity{}, ErrUnexpected
+		return nil, ErrUnexpected
 	}
 
 	return shortURLEntity, nil
 }
 
+// SaveShortURLs сохраняет короткие ссылки пачкой
 func (r *DBShortURLRepository) SaveShortURLs(ctx context.Context, shortURLEntities []entity.ShortURLEntity) ([]entity.ShortURLEntity, error) {
 	dbLookup := r.dbLookup.GetDB()
 
@@ -146,6 +154,7 @@ func (r *DBShortURLRepository) SaveShortURLs(ctx context.Context, shortURLEntiti
 	return shortURLEntities, nil
 }
 
+// GetShortURLsByUserID возвращает список коротких ссылок по userID
 func (r *DBShortURLRepository) GetShortURLsByUserID(ctx context.Context, userID string) ([]entity.ShortURLEntity, error) {
 	dbLookup := r.dbLookup.GetDB()
 
@@ -185,6 +194,7 @@ func (r *DBShortURLRepository) GetShortURLsByUserID(ctx context.Context, userID 
 	return result, nil
 }
 
+// DeleteShortURLsByShortURIs удаляет короткие ссылки по списку shortURI
 func (r *DBShortURLRepository) DeleteShortURLsByShortURIs(ctx context.Context, shortURIs []string) error {
 	dbLookup := r.dbLookup.GetDB()
 

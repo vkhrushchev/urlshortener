@@ -22,10 +22,12 @@ const createUniqueIndexOnOriginalURLSQL = `create unique index if not exists sho
 const addUserIDColumnSQL = `alter table short_url add if not exists user_id varchar(36) not null;`
 const addIsDeletedColumnSQL = `alter table short_url add if not exists is_deleted boolean not null;`
 
+// DBLookup - структура для хранения ссылки на sql.DB
 type DBLookup struct {
 	db *sql.DB
 }
 
+// NewDBLookup создает экземпляр структуры DBLookup
 func NewDBLookup(databaseDSN string) (*DBLookup, error) {
 	db, err := sql.Open("pgx", databaseDSN)
 	if err != nil {
@@ -37,6 +39,7 @@ func NewDBLookup(databaseDSN string) (*DBLookup, error) {
 	}, nil
 }
 
+// InitDB инициализирует схему БД
 func (d *DBLookup) InitDB(ctx context.Context) error {
 	log.Infow("db: run createShortUrlTableSQL...")
 	_, err := d.db.ExecContext(ctx, createShortURLTableSQL)
@@ -69,6 +72,7 @@ func (d *DBLookup) InitDB(ctx context.Context) error {
 	return nil
 }
 
+// Ping проверяет доступность базы данных
 func (d *DBLookup) Ping(ctx context.Context) bool {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
@@ -81,6 +85,7 @@ func (d *DBLookup) Ping(ctx context.Context) bool {
 	return err == nil
 }
 
+// GetDB возвращает ссылку на экземпляр sql.DB хранящийся в структуре
 func (d *DBLookup) GetDB() *sql.DB {
 	return d.db
 }

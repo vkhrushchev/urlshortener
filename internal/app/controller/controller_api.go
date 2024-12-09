@@ -5,27 +5,36 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+
 	"github.com/vkhrushchev/urlshortener/internal/app/domain"
 	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
-	"net/http"
 
 	"github.com/vkhrushchev/urlshortener/internal/app/dto"
 	"github.com/vkhrushchev/urlshortener/internal/middleware"
 	"github.com/vkhrushchev/urlshortener/internal/util"
 )
 
+// APIController используется для обработки API-запросов приложения
 type APIController struct {
-	baseURL               string
-	createShortURLUseCase usecase.ICreateShortURLUseCase
-	getShortURLUseCase    usecase.IGetShortURLUseCase
-	deleteShortURLUseCase usecase.IDeleteShortURLUseCase
+	baseURL               string                         // URL до сервера с развернутым приложением
+	createShortURLUseCase usecase.ICreateShortURLUseCase // Сценарий создания короткой ссылки
+	getShortURLUseCase    usecase.IGetShortURLUseCase    // Сценарий получения короткой ссылки
+	deleteShortURLUseCase usecase.IDeleteShortURLUseCase // Сценарий удаления короткой ссылки
 }
 
+// NewAPIController создает новый экземпляр структуры APIController
+//
+//	baseURL - URL до сервера с развернутым приложением
+//	createShortURLUseCase - use case создания короткой ссылки
+//	getShortURLUseCase - use case получения короткой ссылки
+//	getShortURLUseCase - use case получения короткой ссылки
 func NewAPIController(
 	baseURL string,
 	createShortURLUseCase usecase.ICreateShortURLUseCase,
 	getShortURLUseCase usecase.IGetShortURLUseCase,
-	deleteShortURLUseCase usecase.IDeleteShortURLUseCase) *APIController {
+	deleteShortURLUseCase usecase.IDeleteShortURLUseCase,
+) *APIController {
 	return &APIController{
 		baseURL:               baseURL,
 		createShortURLUseCase: createShortURLUseCase,
@@ -34,6 +43,17 @@ func NewAPIController(
 	}
 }
 
+// CreateShortURLHandler обрабатывает запрос на создание короткой ссылки
+//
+//	@Summary	Создание короткой ссылки
+//	@Accepts	json
+//	@Produce	json
+//	@Success	201	{object}	dto.APICreateShortURLResponse
+//	@Failure	400	{object}	dto.APICreateShortURLResponse	"ошибка в формате запроса"
+//	@Success	409	{object}	dto.APICreateShortURLResponse	"короткая ссылка уже существует"
+//	@Failure	500	{object}	dto.APICreateShortURLResponse	"внутренняя ошибка сервиса"
+//	@Router		/api/shorten [post]
+//	@Param		body	body	dto.APICreateShortURLRequest	true "запрос на создание короткой ссылки"
 func (c *APIController) CreateShortURLHandler(w http.ResponseWriter, r *http.Request) {
 	apiResponse := &dto.APICreateShortURLResponse{}
 
@@ -88,6 +108,16 @@ func (c *APIController) CreateShortURLHandler(w http.ResponseWriter, r *http.Req
 	json.NewEncoder(w).Encode(apiResponse)
 }
 
+// CreateShortURLBatchHandler обрабатывает запрос на создание коротких ссылок пачкой
+//
+//	@Summary	Создание коротких ссылок пачкой
+//	@Accepts	json
+//	@Produce	json
+//	@Success	200	{object}	dto.APICreateShortURLBatchResponse
+//	@Failure	400	{string}	string	"ошибка в формате запроса"
+//	@Failure	500	{string}	string	"внутренняя ошибка сервиса"
+//	@Router		/api/shorten/batch [post]
+//	@Param		body	body	dto.APICreateShortURLBatchRequest	true "запрос на создание коротких ссылок пачкой"
 func (c *APIController) CreateShortURLBatchHandler(w http.ResponseWriter, r *http.Request) {
 	contentType := r.Header.Get("Content-Type")
 	if contentType != "application/json" {
@@ -134,24 +164,33 @@ func (c *APIController) CreateShortURLBatchHandler(w http.ResponseWriter, r *htt
 	json.NewEncoder(w).Encode(apiResponse)
 }
 
+// GetShortURLByUserID обрабатывает запрос на получение коротких ссылок созданных пользователем
+//
+//	@Summary	Получение коротких ссылок созданных пользователем
+//	@Accepts	json
+//	@Produce	json
+//	@Success	200	{object}	dto.APIGetAllURLByUserIDResponse
+//	@Success	204	{string}	string	"у пользователя нет коротких ссылок"
+//	@Failure	400	{string}	string	"ошибка в формате запроса"
+//	@Failure	500	{string}	string	"внутренняя ошибка сервиса"
+//	@Router		/api/user/urls [get]
 func (c *APIController) GetShortURLByUserID(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(middleware.UserIDContextKey).(string)
-	storageEntries, err := c.getShortURLUseCase.GetShortURLsByUserID(r.Context(), userID)
+	shortURLDomains, err := c.getShortURLUseCase.GetShortURLsByUserID(r.Context(), userID)
 	if err != nil {
-		log.Errorw("app: error when get shortURL by userID", "erorr", err.Error(), "userID", userID)
+		log.Errorw("app: error when get shortURL by userID", "userID", userID, "err", err)
 
 		w.WriteHeader(http.StatusInternalServerError)
-
 		return
 	}
 
-	if len(storageEntries) == 0 {
+	if len(shortURLDomains) == 0 {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
-	apiResponse := make(dto.APIGetAllURLByUserIDResponse, 0, len(storageEntries))
-	for _, storageEntry := range storageEntries {
+	apiResponse := make(dto.APIGetAllURLByUserIDResponse, 0, len(shortURLDomains))
+	for _, storageEntry := range shortURLDomains {
 		apiResponseEntry := dto.APIGetAllURLByUserIDResponseEntry{
 			ShortURL:    util.GetShortURL(c.baseURL, storageEntry.ShortURI),
 			OriginalURL: storageEntry.LongURL,
@@ -164,11 +203,20 @@ func (c *APIController) GetShortURLByUserID(w http.ResponseWriter, r *http.Reque
 	json.NewEncoder(w).Encode(apiResponse)
 }
 
+// DeleteShortURLs обрабатывает запрос на удаление коротких ссылок
+//
+//	@Summary	Удаление коротких ссылок
+//	@Accepts	json
+//	@Produce	json
+//	@Success	200	{string}	string
+//	@Failure	400	{string}	string	"ошибка в формате запроса"
+//	@Failure	500	{string}	string	"внутренняя ошибка сервиса"
+//	@Router		/api/user/urls [delete]
+//	@Param		body	body	[]string	true "список идентификаторов коротких ссылок"
 func (c *APIController) DeleteShortURLs(w http.ResponseWriter, r *http.Request) {
 	contentType := r.Header.Get("Content-Type")
 	if contentType != "application/json" {
 		w.WriteHeader(http.StatusBadRequest)
-
 		return
 	}
 

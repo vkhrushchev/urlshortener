@@ -5,6 +5,7 @@ import (
 	"os"
 )
 
+// Config - структура с описанием конфигурации
 type Config struct {
 	runAddr         string
 	baseURL         string
