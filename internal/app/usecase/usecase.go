@@ -26,11 +26,11 @@ type ICreateShortURLUseCase interface {
 }
 
 type CreateShortURLUseCase struct {
-	repository repository.IShortURLRepository
+	repo repository.IShortURLRepository
 }
 
-func NewCreateShortURLUseCase(r repository.IShortURLRepository) *CreateShortURLUseCase {
-	return &CreateShortURLUseCase{repository: r}
+func NewCreateShortURLUseCase(repo repository.IShortURLRepository) *CreateShortURLUseCase {
+	return &CreateShortURLUseCase{repo: repo}
 }
 
 func (uc *CreateShortURLUseCase) CreateShortURL(ctx context.Context, url string) (domain.ShortURLDomain, error) {
@@ -45,7 +45,7 @@ func (uc *CreateShortURLUseCase) CreateShortURL(ctx context.Context, url string)
 		Deleted:  false,
 	}
 
-	shortURLEntity, err := uc.repository.SaveShortURL(ctx, shortURLEntity)
+	shortURLEntity, err := uc.repo.SaveShortURL(ctx, shortURLEntity)
 	if err != nil && errors.Is(err, repository.ErrConflict) {
 		log.Infow("use_case: conflict with existed entity", "url", url, "userID", userID)
 		return domain.ShortURLDomain{}, ErrConflict
@@ -74,7 +74,7 @@ func (uc *CreateShortURLUseCase) CreateShortURLBatch(ctx context.Context, create
 		shortURLEntities = append(shortURLEntities, shortURLEntity)
 	}
 
-	shortURLEntities, err := uc.repository.SaveShortURLs(ctx, shortURLEntities)
+	shortURLEntities, err := uc.repo.SaveShortURLs(ctx, shortURLEntities)
 	if err != nil {
 		log.Errorw("use_case: failed to save short URL batch", "error", err)
 		return nil, ErrUnexpected
@@ -99,17 +99,17 @@ type IGetShortURLUseCase interface {
 }
 
 type GetShortURLUseCase struct {
-	repository repository.IShortURLRepository
+	repo repository.IShortURLRepository
 }
 
-func NewGetShortURLUseCase(r repository.IShortURLRepository) *GetShortURLUseCase {
-	return &GetShortURLUseCase{repository: r}
+func NewGetShortURLUseCase(repo repository.IShortURLRepository) *GetShortURLUseCase {
+	return &GetShortURLUseCase{repo: repo}
 }
 
 func (uc *GetShortURLUseCase) GetShortURL(ctx context.Context, shortURI string) (domain.ShortURLDomain, error) {
 	log.Infow("use_case: get short URL", "shortURI", shortURI)
 
-	shortURLEntity, err := uc.repository.GetShortURLByShortURI(ctx, shortURI)
+	shortURLEntity, err := uc.repo.GetShortURLByShortURI(ctx, shortURI)
 	if err != nil && errors.Is(err, repository.ErrNotFound) {
 		log.Infow("use_case: short url not found", "shortURI", shortURI)
 		return domain.ShortURLDomain{}, ErrNotFound
@@ -124,7 +124,7 @@ func (uc *GetShortURLUseCase) GetShortURL(ctx context.Context, shortURI string) 
 func (uc *GetShortURLUseCase) GetShortURLsByUserID(ctx context.Context, userID string) ([]domain.ShortURLDomain, error) {
 	log.Infow("use_case: get short URLs by userID", "userID", userID)
 
-	shortURLEntities, err := uc.repository.GetShortURLsByUserID(ctx, userID)
+	shortURLEntities, err := uc.repo.GetShortURLsByUserID(ctx, userID)
 	if err != nil {
 		log.Errorw("use_case: failed to get short urls by userID", "userID", userID, "error", err)
 		return nil, ErrUnexpected
@@ -145,18 +145,18 @@ type IDeleteShortURLUseCase interface {
 }
 
 type DeleteShortURLUseCase struct {
-	repository repository.IShortURLRepository
+	repo repository.IShortURLRepository
 }
 
-func NewDeleteShortURLUseCase(r repository.IShortURLRepository) *DeleteShortURLUseCase {
-	return &DeleteShortURLUseCase{repository: r}
+func NewDeleteShortURLUseCase(repo repository.IShortURLRepository) *DeleteShortURLUseCase {
+	return &DeleteShortURLUseCase{repo: repo}
 }
 
 func (uc *DeleteShortURLUseCase) DeleteShortURLsByShortURIs(ctx context.Context, shortURIs []string) error {
 	userID := ctx.Value(middleware.UserIDContextKey).(string)
 	log.Infow("use_case: delete short URLs by shortURIs", "shortURIs", shortURIs, "userID", userID)
 
-	err := uc.repository.DeleteShortURLsByShortURIs(ctx, shortURIs)
+	err := uc.repo.DeleteShortURLsByShortURIs(ctx, shortURIs)
 	if err != nil {
 		log.Errorw("use_case: failed to delete short URLs by shortURIs", "shortURIs", shortURIs, "userID", userID, "error", err)
 		return ErrUnexpected

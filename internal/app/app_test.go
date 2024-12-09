@@ -20,11 +20,11 @@ import (
 )
 
 func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
-	shortUrlRepo := repository.NewInMemoryShortURLRepository()
+	shortURLRepo := repository.NewInMemoryShortURLRepository()
 
-	createShortURLUseCase := usecase.NewCreateShortURLUseCase(shortUrlRepo)
-	getShortURLUseCase := usecase.NewGetShortURLUseCase(shortUrlRepo)
-	deleteShortURLUseCase := usecase.NewDeleteShortURLUseCase(shortUrlRepo)
+	createShortURLUseCase := usecase.NewCreateShortURLUseCase(shortURLRepo)
+	getShortURLUseCase := usecase.NewGetShortURLUseCase(shortURLRepo)
+	deleteShortURLUseCase := usecase.NewDeleteShortURLUseCase(shortURLRepo)
 
 	appController := controller.NewAppController("", createShortURLUseCase, getShortURLUseCase)
 	apiController := controller.NewAPIController("", createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
@@ -68,11 +68,11 @@ func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
 }
 
 func TestURLShortenerApp_getURLHandler(t *testing.T) {
-	shortUrlRepo := repository.NewInMemoryShortURLRepository()
+	shortURLRepo := repository.NewInMemoryShortURLRepository()
 
-	createShortURLUseCase := usecase.NewCreateShortURLUseCase(shortUrlRepo)
-	getShortURLUseCase := usecase.NewGetShortURLUseCase(shortUrlRepo)
-	deleteShortURLUseCase := usecase.NewDeleteShortURLUseCase(shortUrlRepo)
+	createShortURLUseCase := usecase.NewCreateShortURLUseCase(shortURLRepo)
+	getShortURLUseCase := usecase.NewGetShortURLUseCase(shortURLRepo)
+	deleteShortURLUseCase := usecase.NewDeleteShortURLUseCase(shortURLRepo)
 
 	appController := controller.NewAppController("", createShortURLUseCase, getShortURLUseCase)
 	apiController := controller.NewAPIController("", createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
@@ -131,11 +131,11 @@ func TestURLShortenerApp_getURLHandler(t *testing.T) {
 }
 
 func TestURLShortenerApp_createShortURLHandlerAPI(t *testing.T) {
-	shortUrlRepo := repository.NewInMemoryShortURLRepository()
+	shortURLRepo := repository.NewInMemoryShortURLRepository()
 
-	createShortURLUseCase := usecase.NewCreateShortURLUseCase(shortUrlRepo)
-	getShortURLUseCase := usecase.NewGetShortURLUseCase(shortUrlRepo)
-	deleteShortURLUseCase := usecase.NewDeleteShortURLUseCase(shortUrlRepo)
+	createShortURLUseCase := usecase.NewCreateShortURLUseCase(shortURLRepo)
+	getShortURLUseCase := usecase.NewGetShortURLUseCase(shortURLRepo)
+	deleteShortURLUseCase := usecase.NewDeleteShortURLUseCase(shortURLRepo)
 
 	appController := controller.NewAppController("", createShortURLUseCase, getShortURLUseCase)
 	apiController := controller.NewAPIController("", createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
@@ -224,11 +224,11 @@ func TestURLShortenerApp_createShortURLHandlerAPI(t *testing.T) {
 }
 
 func TestURLShortenerApp_createShortURLBatchHandlerAPI(t *testing.T) {
-	shortUrlRepo := repository.NewInMemoryShortURLRepository()
+	shortURLRepo := repository.NewInMemoryShortURLRepository()
 
-	createShortURLUseCase := usecase.NewCreateShortURLUseCase(shortUrlRepo)
-	getShortURLUseCase := usecase.NewGetShortURLUseCase(shortUrlRepo)
-	deleteShortURLUseCase := usecase.NewDeleteShortURLUseCase(shortUrlRepo)
+	createShortURLUseCase := usecase.NewCreateShortURLUseCase(shortURLRepo)
+	getShortURLUseCase := usecase.NewGetShortURLUseCase(shortURLRepo)
+	deleteShortURLUseCase := usecase.NewDeleteShortURLUseCase(shortURLRepo)
 
 	appController := controller.NewAppController("", createShortURLUseCase, getShortURLUseCase)
 	apiController := controller.NewAPIController("", createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)

@@ -21,11 +21,11 @@ func main() {
 		log.Fatalf("main: error when init DBLookup: %v", err)
 	}
 
-	shortUrlRepo := initShortURLRepository(dbLookup, flags.fileStoragePath)
+	shortURLRepo := initShortURLRepository(dbLookup, flags.fileStoragePath)
 
-	createShortURLUseCase := usecase.NewCreateShortURLUseCase(shortUrlRepo)
-	getShortURLUseCase := usecase.NewGetShortURLUseCase(shortUrlRepo)
-	deleteShortURLUseCase := usecase.NewDeleteShortURLUseCase(shortUrlRepo)
+	createShortURLUseCase := usecase.NewCreateShortURLUseCase(shortURLRepo)
+	getShortURLUseCase := usecase.NewGetShortURLUseCase(shortURLRepo)
+	deleteShortURLUseCase := usecase.NewDeleteShortURLUseCase(shortURLRepo)
 
 	appController := controller.NewAppController(flags.baseURL, createShortURLUseCase, getShortURLUseCase)
 	apiController := controller.NewAPIController(flags.baseURL, createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
