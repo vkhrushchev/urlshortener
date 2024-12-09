@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var log = zap.Must(zap.NewProduction()).Sugar()
+var log = zap.Must(zap.NewDevelopment()).Sugar()
 
 const createShortURLTableSQL = `create table if not exists short_url
 (
