@@ -13,6 +13,7 @@ import (
 
 var log = zap.Must(zap.NewProduction()).Sugar()
 
+// URLShortenerApp - структура с описанием приложения Shortener
 type URLShortenerApp struct {
 	appController    *controller.AppController
 	apiController    *controller.APIController
@@ -21,6 +22,7 @@ type URLShortenerApp struct {
 	runAddr          string
 }
 
+// NewURLShortenerApp создает экземпляр структуры URLShortenerApp
 func NewURLShortenerApp(
 	runAddr string,
 	appController *controller.AppController,
@@ -35,6 +37,7 @@ func NewURLShortenerApp(
 	}
 }
 
+// RegisterHandlers регистрирует обработчики http-запросов
 func (a *URLShortenerApp) RegisterHandlers() {
 	a.router.Post(
 		"/",
@@ -69,6 +72,7 @@ func (a *URLShortenerApp) RegisterHandlers() {
 		a.healthController.Ping)
 }
 
+// Run запускает http-сервер с приложением
 func (a *URLShortenerApp) Run() error {
 	log.Infow(
 		"app: URLShortenerApp stated",

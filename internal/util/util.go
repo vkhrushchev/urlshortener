@@ -12,6 +12,7 @@ func init() {
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
+// RandStringRunes возвращает строку из случайного набора символов длинной n
 func RandStringRunes(n int) string {
 	b := make([]rune, n)
 	for i := range b {
@@ -20,12 +21,13 @@ func RandStringRunes(n int) string {
 	return string(b)
 }
 
-func GetShortURL(baseURL string, urlID string) string {
+// GetShortURL возвращает короткую ссылку в виде конкатенации baseURL и shortURI
+func GetShortURL(baseURL string, shortURI string) string {
 	var shortURL string
 	if strings.HasSuffix(baseURL, "/") {
-		shortURL = baseURL + urlID
+		shortURL = baseURL + shortURI
 	} else {
-		shortURL = baseURL + "/" + urlID
+		shortURL = baseURL + "/" + shortURI
 	}
 
 	return shortURL

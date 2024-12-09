@@ -16,24 +16,28 @@ import (
 var log = zap.Must(zap.NewDevelopment()).Sugar()
 
 var (
-	ErrConflict   = errors.New("conflict")
-	ErrNotFound   = errors.New("not found")
-	ErrUnexpected = errors.New("unexpected error")
+	ErrConflict   = errors.New("conflict")         // Короткая ссылка уже существует
+	ErrNotFound   = errors.New("entity not found") // Короткая ссылка не найдена
+	ErrUnexpected = errors.New("unexpected error") // Непредвиденная ошибка
 )
 
+// ICreateShortURLUseCase интерфейс описывающий сценарий создания короткой ссылки
 type ICreateShortURLUseCase interface {
 	CreateShortURL(ctx context.Context, url string) (domain.ShortURLDomain, error)
 	CreateShortURLBatch(ctx context.Context, createShortURLBatchDomains []domain.CreateShortURLBatchDomain) ([]domain.CreateShortURLBatchResultDomain, error)
 }
 
+// CreateShortURLUseCase реализует интерфейс ICreateShortURLUseCase
 type CreateShortURLUseCase struct {
 	repo repository.IShortURLRepository
 }
 
+// NewCreateShortURLUseCase создает экземпляр CreateShortURLUseCase
 func NewCreateShortURLUseCase(repo repository.IShortURLRepository) *CreateShortURLUseCase {
 	return &CreateShortURLUseCase{repo: repo}
 }
 
+// CreateShortURL создает короткую ссылку
 func (uc *CreateShortURLUseCase) CreateShortURL(ctx context.Context, url string) (domain.ShortURLDomain, error) {
 	userID := ctx.Value(middleware.UserIDContextKey).(string)
 	log.Infow("use_case: CreateShortURL", "url", url, "userID", userID)
@@ -58,6 +62,7 @@ func (uc *CreateShortURLUseCase) CreateShortURL(ctx context.Context, url string)
 	return domain.ShortURLDomain(*shortURLEntity), nil
 }
 
+// CreateShortURLBatch создает короткие ссылки пачкой
 func (uc *CreateShortURLUseCase) CreateShortURLBatch(ctx context.Context, createShortURLBatchDomains []domain.CreateShortURLBatchDomain) ([]domain.CreateShortURLBatchResultDomain, error) {
 	userID := ctx.Value(middleware.UserIDContextKey).(string)
 	log.Infow("use_case: create short URL batch", "userID", userID)
@@ -94,20 +99,24 @@ func (uc *CreateShortURLUseCase) CreateShortURLBatch(ctx context.Context, create
 	return result, nil
 }
 
+// IGetShortURLUseCase интерфейс описывающий сценарий создания получения короткой ссылки
 type IGetShortURLUseCase interface {
-	GetShortURL(ctx context.Context, shortURI string) (domain.ShortURLDomain, error)
+	GetShortURLByShortURI(ctx context.Context, shortURI string) (domain.ShortURLDomain, error)
 	GetShortURLsByUserID(ctx context.Context, userID string) ([]domain.ShortURLDomain, error)
 }
 
+// GetShortURLUseCase реализует интерфейс IGetShortURLUseCase
 type GetShortURLUseCase struct {
 	repo repository.IShortURLRepository
 }
 
+// NewGetShortURLUseCase создает экземпляр GetShortURLUseCase
 func NewGetShortURLUseCase(repo repository.IShortURLRepository) *GetShortURLUseCase {
 	return &GetShortURLUseCase{repo: repo}
 }
 
-func (uc *GetShortURLUseCase) GetShortURL(ctx context.Context, shortURI string) (domain.ShortURLDomain, error) {
+// GetShortURLByShortURI возвращает короткую ссылку по shortURI
+func (uc *GetShortURLUseCase) GetShortURLByShortURI(ctx context.Context, shortURI string) (domain.ShortURLDomain, error) {
 	log.Infow("use_case: get short URL", "shortURI", shortURI)
 
 	shortURLEntity, err := uc.repo.GetShortURLByShortURI(ctx, shortURI)
@@ -122,6 +131,7 @@ func (uc *GetShortURLUseCase) GetShortURL(ctx context.Context, shortURI string) 
 	return domain.ShortURLDomain(shortURLEntity), nil
 }
 
+// GetShortURLsByUserID возвращает список коротких ссылок по userID
 func (uc *GetShortURLUseCase) GetShortURLsByUserID(ctx context.Context, userID string) ([]domain.ShortURLDomain, error) {
 	log.Infow("use_case: get short URLs by userID", "userID", userID)
 
@@ -141,18 +151,22 @@ func (uc *GetShortURLUseCase) GetShortURLsByUserID(ctx context.Context, userID s
 	return result, nil
 }
 
+// IDeleteShortURLUseCase интерфейс описывающий сценарий удаления ссылок
 type IDeleteShortURLUseCase interface {
 	DeleteShortURLsByShortURIs(ctx context.Context, shortURIs []string) error
 }
 
+// DeleteShortURLUseCase реализует IDeleteShortURLUseCase
 type DeleteShortURLUseCase struct {
 	repo repository.IShortURLRepository
 }
 
+// NewDeleteShortURLUseCase создает экземпляр DeleteShortURLUseCase
 func NewDeleteShortURLUseCase(repo repository.IShortURLRepository) *DeleteShortURLUseCase {
 	return &DeleteShortURLUseCase{repo: repo}
 }
 
+// DeleteShortURLsByShortURIs удаляет короткие ссылки по списку shortURIs
 func (uc *DeleteShortURLUseCase) DeleteShortURLsByShortURIs(ctx context.Context, shortURIs []string) error {
 	userID := ctx.Value(middleware.UserIDContextKey).(string)
 	log.Infow("use_case: delete short URLs by shortURIs", "shortURIs", shortURIs, "userID", userID)

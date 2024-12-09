@@ -109,7 +109,7 @@ func (c *AppController) CreateShortURLHandler(w http.ResponseWriter, r *http.Req
 func (c *AppController) GetURLHandler(w http.ResponseWriter, r *http.Request) {
 	shortURI := chi.URLParam(r, "id")
 
-	shortURLEntry, err := c.getShortURLUseCase.GetShortURL(r.Context(), shortURI)
+	shortURLEntry, err := c.getShortURLUseCase.GetShortURLByShortURI(r.Context(), shortURI)
 	if err != nil && !errors.Is(err, usecase.ErrNotFound) {
 		log.Errorw("app: error when get original url from storage", "err", err)
 

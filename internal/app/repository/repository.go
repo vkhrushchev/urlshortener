@@ -11,11 +11,12 @@ import (
 var log = zap.Must(zap.NewDevelopment()).Sugar()
 
 var (
-	ErrConflict   = errors.New("conflict")
-	ErrNotFound   = errors.New("entity not found")
-	ErrUnexpected = errors.New("unexpected error")
+	ErrConflict   = errors.New("conflict")         // Короткая ссылка уже существует
+	ErrNotFound   = errors.New("entity not found") // Короткая ссылка не найдена
+	ErrUnexpected = errors.New("unexpected error") // Непредвиденная ошибка
 )
 
+// IShortURLRepository интерфейс репозитория для сущности ShortURL
 type IShortURLRepository interface {
 	GetShortURLByShortURI(ctx context.Context, shortURI string) (entity.ShortURLEntity, error)
 	SaveShortURL(ctx context.Context, shortURLEntity *entity.ShortURLEntity) (*entity.ShortURLEntity, error)

@@ -193,7 +193,7 @@ func (suite *GetShortURLUseCaseTestSuite) TestGetShortURL_success() {
 		Return(testShortURLEntity, nil)
 
 	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
-	shortURLDomain, err := suite.useCase.GetShortURL(testCtx, "abc")
+	shortURLDomain, err := suite.useCase.GetShortURLByShortURI(testCtx, "abc")
 	if err != nil {
 		log.Errorw("use_case: error when get short url", "error", err)
 	}
@@ -209,7 +209,7 @@ func (suite *GetShortURLUseCaseTestSuite) TestGetShortURL_not_found() {
 
 	testUserID := uuid.NewString()
 	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
-	_, err := suite.useCase.GetShortURL(testCtx, "abc")
+	_, err := suite.useCase.GetShortURLByShortURI(testCtx, "abc")
 	if err != nil && !errors.Is(err, repository.ErrNotFound) {
 		log.Errorw("use_case: error when get short url", "error", err)
 	}
@@ -225,7 +225,7 @@ func (suite *GetShortURLUseCaseTestSuite) TestGetShortURL_unexpected_error() {
 
 	testUserID := uuid.NewString()
 	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
-	_, err := suite.useCase.GetShortURL(testCtx, "abc")
+	_, err := suite.useCase.GetShortURLByShortURI(testCtx, "abc")
 	if err != nil && !errors.Is(err, repository.ErrUnexpected) {
 		log.Errorw("use_case: error when get short url", "error", err)
 	}

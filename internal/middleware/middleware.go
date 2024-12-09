@@ -23,6 +23,7 @@ type loggedResponseWriter struct {
 	responseSize   int
 }
 
+// Write переопределяет метод Write http.ResponseWriter
 func (lrw *loggedResponseWriter) Write(data []byte) (int, error) {
 	size, err := lrw.ResponseWriter.Write(data)
 	lrw.responseSize += size
@@ -30,11 +31,13 @@ func (lrw *loggedResponseWriter) Write(data []byte) (int, error) {
 	return size, err
 }
 
+// WriteHeader переопределяет метод WriteHeader http.ResponseWriter
 func (lrw *loggedResponseWriter) WriteHeader(statusCode int) {
 	lrw.ResponseWriter.WriteHeader(statusCode)
 	lrw.responseStatus = statusCode
 }
 
+// LogRequestMiddleware возвращает middleware для логирования запроса
 func LogRequestMiddleware(next func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Infow(
@@ -74,10 +77,12 @@ func newGzipWriter(w http.ResponseWriter) *gzipWriter {
 	}
 }
 
+// Header переопределяет метод Header http.ResponseWriter
 func (c *gzipWriter) Header() http.Header {
 	return c.w.Header()
 }
 
+// Write переопределяет метод Write http.ResponseWriter
 func (c *gzipWriter) Write(p []byte) (int, error) {
 	// пишем через gzip.Writer для "text/html" и "application/json"
 	contentType := c.Header().Get("Content-Type")
@@ -88,6 +93,7 @@ func (c *gzipWriter) Write(p []byte) (int, error) {
 	return c.w.Write(p)
 }
 
+// WriteHeader переопределяет метод WriteHeader http.ResponseWriter
 func (c *gzipWriter) WriteHeader(statusCode int) {
 	// для "text/html" и "application/json" проставляем заголовок "Content-Encoding: gzip"
 	contentType := c.Header().Get("Content-Type")
@@ -98,6 +104,7 @@ func (c *gzipWriter) WriteHeader(statusCode int) {
 	c.w.WriteHeader(statusCode)
 }
 
+// Close переопределяет метод Close http.ResponseWriter
 func (c *gzipWriter) Close() error {
 	// закрываем только в том случае если писали через gzip.Writer, иначе записывается "GZIP footer" в конец ответа
 	contentType := c.Header().Get("Content-Type")
@@ -125,10 +132,12 @@ func newGzipReader(r io.ReadCloser) (*gzipReader, error) {
 	}, nil
 }
 
+// Read переопределяет метод Read io.ReadCloser
 func (c gzipReader) Read(p []byte) (n int, err error) {
 	return c.zr.Read(p)
 }
 
+// Close переопределяет метод Close io.ReadCloser
 func (c *gzipReader) Close() error {
 	if err := c.r.Close(); err != nil {
 		return err
@@ -136,6 +145,7 @@ func (c *gzipReader) Close() error {
 	return c.zr.Close()
 }
 
+// GzipMiddleware возвращает middleware для обработки запроса/ответа в формате gzip
 func GzipMiddleware(next func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ow := w
@@ -164,13 +174,15 @@ func GzipMiddleware(next func(w http.ResponseWriter, r *http.Request)) func(w ht
 	}
 }
 
+// ShortenerContextKey тип для ключей контекста приложения Shortener
 type ShortenerContextKey string
 
 const (
-	UserIDContextKey ShortenerContextKey = "userID"
+	UserIDContextKey ShortenerContextKey = "userID" // Ключ для хранения идентификатора пользователя
 )
 const userIDSignatureSalt = "mega_puper_salt"
 
+// UserIDCookieMiddleware возвращает middleware для обработки кук "userID" и "userIDSignature"
 func UserIDCookieMiddleware(next func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var userIDCookie *http.Cookie
@@ -237,6 +249,7 @@ func validateUserIDCookie(userID string, userIDSignature string) bool {
 	return userIDSignatureByUserIDCookie == userIDSignature
 }
 
+// AuthByUserIDCookieMiddleware возвращает middleware для авторизации по кукам "userID" и "userIDSignature"
 func AuthByUserIDCookieMiddleware(next func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var userIDCookie *http.Cookie

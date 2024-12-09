@@ -11,11 +11,13 @@ import (
 	"github.com/vkhrushchev/urlshortener/internal/app/entity"
 )
 
+// JSONFileShortURLRepository реализует интерфейс IShortURLRepository для хранения коротких ссылок в json-файле
 type JSONFileShortURLRepository struct {
 	InMemoryShortURLRepository
 	path string
 }
 
+// NewJSONFileShortURLRepository создает экземпляр структуры JSONFileShortURLRepository
 func NewJSONFileShortURLRepository(path string) (*JSONFileShortURLRepository, error) {
 	var file *os.File
 	var fileInfo os.FileInfo
@@ -67,6 +69,7 @@ func NewJSONFileShortURLRepository(path string) (*JSONFileShortURLRepository, er
 	return jsonFileShortURLRepository, nil
 }
 
+// SaveShortURL сохраняет короткую ссылку
 func (r *JSONFileShortURLRepository) SaveShortURL(ctx context.Context, shortURLEntity *entity.ShortURLEntity) (*entity.ShortURLEntity, error) {
 	shortURLEntity, err := r.InMemoryShortURLRepository.SaveShortURL(ctx, shortURLEntity)
 	if err != nil {

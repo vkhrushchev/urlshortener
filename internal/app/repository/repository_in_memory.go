@@ -7,11 +7,13 @@ import (
 	"github.com/vkhrushchev/urlshortener/internal/middleware"
 )
 
+// InMemoryShortURLRepository реализует интерфейс IShortURLRepository для хранения коротких ссылок в памяти
 type InMemoryShortURLRepository struct {
 	storage         map[string]*entity.ShortURLEntity
 	storageByUserID map[string][]*entity.ShortURLEntity
 }
 
+// NewInMemoryShortURLRepository создает экземпляр структуры InMemoryShortURLRepository
 func NewInMemoryShortURLRepository() *InMemoryShortURLRepository {
 	return &InMemoryShortURLRepository{
 		storage:         make(map[string]*entity.ShortURLEntity),
@@ -19,6 +21,7 @@ func NewInMemoryShortURLRepository() *InMemoryShortURLRepository {
 	}
 }
 
+// GetShortURLByShortURI возвращает короткую ссылку по shortURI
 func (r *InMemoryShortURLRepository) GetShortURLByShortURI(ctx context.Context, shortURI string) (entity.ShortURLEntity, error) {
 	shortURLEntry := r.storage[shortURI]
 	if shortURLEntry == nil {
@@ -28,6 +31,7 @@ func (r *InMemoryShortURLRepository) GetShortURLByShortURI(ctx context.Context, 
 	return *shortURLEntry, nil
 }
 
+// SaveShortURL сохраняет короткую ссылку
 func (r *InMemoryShortURLRepository) SaveShortURL(ctx context.Context, shortURLEntity *entity.ShortURLEntity) (*entity.ShortURLEntity, error) {
 	r.storage[shortURLEntity.ShortURI] = shortURLEntity
 
@@ -43,6 +47,7 @@ func (r *InMemoryShortURLRepository) SaveShortURL(ctx context.Context, shortURLE
 	return r.storage[shortURLEntity.ShortURI], nil
 }
 
+// SaveShortURLs сохраняет короткие ссылки пачкой
 func (r *InMemoryShortURLRepository) SaveShortURLs(ctx context.Context, shortURLEntities []entity.ShortURLEntity) ([]entity.ShortURLEntity, error) {
 	result := make([]entity.ShortURLEntity, 0, len(shortURLEntities))
 	for _, shortURLEntity := range shortURLEntities {
@@ -57,6 +62,7 @@ func (r *InMemoryShortURLRepository) SaveShortURLs(ctx context.Context, shortURL
 	return result, nil
 }
 
+// GetShortURLsByUserID возвращает список коротких ссылок по userID
 func (r *InMemoryShortURLRepository) GetShortURLsByUserID(ctx context.Context, userID string) ([]entity.ShortURLEntity, error) {
 	shortURLEntitiesByUserID := r.storageByUserID[userID]
 	result := make([]entity.ShortURLEntity, 0, len(shortURLEntitiesByUserID))
@@ -68,6 +74,7 @@ func (r *InMemoryShortURLRepository) GetShortURLsByUserID(ctx context.Context, u
 	return result, nil
 }
 
+// DeleteShortURLsByShortURIs удаляет короткие ссылки по списку shortURI
 func (r *InMemoryShortURLRepository) DeleteShortURLsByShortURIs(ctx context.Context, shortURIs []string) error {
 	userID := ctx.Value(middleware.UserIDContextKey).(string)
 	for _, shortURI := range shortURIs {
