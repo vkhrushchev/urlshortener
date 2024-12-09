@@ -6,9 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-
 	"github.com/vkhrushchev/urlshortener/internal/app/entity"
+	"os"
 )
 
 type JSONFileShortURLRepository struct {
@@ -67,17 +66,17 @@ func NewJSONFileShortURLRepository(path string) (*JSONFileShortURLRepository, er
 	return jsonFileShortURLRepository, nil
 }
 
-func (r *JSONFileShortURLRepository) SaveShortURL(ctx context.Context, shortURLEntity *entity.ShortURLEntity) (*entity.ShortURLEntity, error) {
+func (r *JSONFileShortURLRepository) SaveShortURL(ctx context.Context, shortURLEntity entity.ShortURLEntity) (entity.ShortURLEntity, error) {
 	shortURLEntity, err := r.InMemoryShortURLRepository.SaveShortURL(ctx, shortURLEntity)
 	if err != nil {
 		log.Errorw("repository: error when save short url", "err", err)
-		return nil, err
+		return entity.ShortURLEntity{}, err
 	}
 
 	file, err := os.OpenFile(r.path, os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		log.Errorw("repository: error when open file", "path", r.path, "err", err)
-		return nil, ErrUnexpected
+		return entity.ShortURLEntity{}, ErrUnexpected
 	}
 
 	defer func(file *os.File) {
@@ -95,7 +94,7 @@ func (r *JSONFileShortURLRepository) SaveShortURL(ctx context.Context, shortURLE
 		)
 		err = fmt.Errorf("storage: error when marshal storageJSON to JSON: %v", err)
 
-		return nil, err
+		return entity.ShortURLEntity{}, err
 	}
 
 	shortURLEntityJSONBytes = append(shortURLEntityJSONBytes, '\n')
@@ -108,7 +107,7 @@ func (r *JSONFileShortURLRepository) SaveShortURL(ctx context.Context, shortURLE
 		)
 		err = fmt.Errorf("storage: error when write storageJSON to file: %v", err)
 
-		return nil, err
+		return entity.ShortURLEntity{}, err
 	}
 
 	return shortURLEntity, nil

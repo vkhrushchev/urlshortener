@@ -71,7 +71,7 @@ func (a *URLShortenerApp) RegisterHandlers() {
 
 func (a *URLShortenerApp) Run() error {
 	log.Infow(
-		"app: URLShortenerApp stated",
+		"app: URLShortenerApp stating",
 		"runAddr", a.runAddr,
 	)
 

@@ -3,8 +3,6 @@ package usecase
 import (
 	"context"
 	"errors"
-	"testing"
-
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
@@ -14,6 +12,7 @@ import (
 	mock_repository "github.com/vkhrushchev/urlshortener/internal/app/repository/mock"
 	"github.com/vkhrushchev/urlshortener/internal/middleware"
 	"github.com/vkhrushchev/urlshortener/internal/util"
+	"testing"
 )
 
 type CreateShortURLUseCaseTestSuite struct {
@@ -31,7 +30,7 @@ func (suite *CreateShortURLUseCaseTestSuite) SetupTest() {
 
 func (suite *CreateShortURLUseCaseTestSuite) TestCreateShortURL_success() {
 	testUserID := uuid.NewString()
-	testShortURLEntity := &entity.ShortURLEntity{
+	testShortURLEntity := entity.ShortURLEntity{
 		UUID:     uuid.NewString(),
 		ShortURI: "abc",
 		LongURL:  "https://ya.ru",
@@ -54,7 +53,7 @@ func (suite *CreateShortURLUseCaseTestSuite) TestCreateShortURL_success() {
 
 func (suite *CreateShortURLUseCaseTestSuite) TestCreateShortURL_conflict() {
 	testUserID := uuid.NewString()
-	testShortURLEntity := &entity.ShortURLEntity{
+	testShortURLEntity := entity.ShortURLEntity{
 		UUID:     uuid.NewString(),
 		ShortURI: "abc",
 		LongURL:  "https://ya.ru",
@@ -78,7 +77,7 @@ func (suite *CreateShortURLUseCaseTestSuite) TestCreateShortURL_conflict() {
 func (suite *CreateShortURLUseCaseTestSuite) TestCreateShortURL_unexpected_error() {
 	suite.repositoryMock.EXPECT().
 		SaveShortURL(gomock.Any(), gomock.Any()).
-		Return(nil, repository.ErrUnexpected)
+		Return(entity.ShortURLEntity{}, repository.ErrUnexpected)
 
 	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, uuid.NewString())
 	_, err := suite.useCase.CreateShortURL(testCtx, "https://ya.ru")
@@ -320,19 +319,4 @@ func (suite *DeleteShortURLUseCaseTestSuite) TestDeleteShortURLsByShortURIs_unex
 
 func TestDeleteShortURLUseCaseTestSuite(t *testing.T) {
 	suite.Run(t, new(DeleteShortURLUseCaseTestSuite))
-}
-
-func BenchmarkCreateShortURLUseCase_CreateShortURL(b *testing.B) {
-	repo := repository.NewInMemoryShortURLRepository()
-	useCase := NewCreateShortURLUseCase(repo)
-
-	testUserID := uuid.NewString()
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
-
-	for i := 0; i < b.N; i++ {
-		_, err := useCase.CreateShortURL(testCtx, "https://ya.ru")
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
 }

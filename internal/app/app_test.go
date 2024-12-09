@@ -3,14 +3,13 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"github.com/vkhrushchev/urlshortener/internal/app/repository"
+	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"github.com/vkhrushchev/urlshortener/internal/app/repository"
-	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

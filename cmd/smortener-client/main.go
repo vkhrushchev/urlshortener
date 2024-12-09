@@ -3,10 +3,9 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/go-resty/resty/v2"
 	"os"
 	"strings"
-
-	"github.com/go-resty/resty/v2"
 )
 
 func main() {

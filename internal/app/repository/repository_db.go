@@ -4,13 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"sync"
-
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vkhrushchev/urlshortener/internal/app/db"
 	"github.com/vkhrushchev/urlshortener/internal/app/entity"
 	"github.com/vkhrushchev/urlshortener/internal/middleware"
+	"sync"
 )
 
 const (
@@ -58,7 +57,7 @@ func (r *DBShortURLRepository) GetShortURLByShortURI(ctx context.Context, shortU
 	return shortURLEntity, nil
 }
 
-func (r *DBShortURLRepository) SaveShortURL(ctx context.Context, shortURLEntity *entity.ShortURLEntity) (*entity.ShortURLEntity, error) {
+func (r *DBShortURLRepository) SaveShortURL(ctx context.Context, shortURLEntity entity.ShortURLEntity) (entity.ShortURLEntity, error) {
 	dbLookup := r.dbLookup.GetDB()
 
 	_, err := dbLookup.ExecContext(
@@ -78,7 +77,7 @@ func (r *DBShortURLRepository) SaveShortURL(ctx context.Context, shortURLEntity 
 				sqlRow := dbLookup.QueryRowContext(ctx, sqlSelectByOriginalURL, shortURLEntity.LongURL)
 				if sqlRow.Err() != nil {
 					log.Errorw("repository: unexpected error", "err", err)
-					return nil, ErrUnexpected
+					return entity.ShortURLEntity{}, ErrUnexpected
 				}
 
 				err = sqlRow.Scan(
@@ -90,7 +89,7 @@ func (r *DBShortURLRepository) SaveShortURL(ctx context.Context, shortURLEntity 
 				)
 				if err != nil {
 					log.Errorw("repository: unexpected error", "err", err)
-					return nil, ErrUnexpected
+					return entity.ShortURLEntity{}, ErrUnexpected
 				}
 
 				return shortURLEntity, ErrConflict
@@ -98,7 +97,7 @@ func (r *DBShortURLRepository) SaveShortURL(ctx context.Context, shortURLEntity 
 		}
 
 		log.Errorw("repository: unexpected error", "err", err)
-		return nil, ErrUnexpected
+		return entity.ShortURLEntity{}, ErrUnexpected
 	}
 
 	return shortURLEntity, nil

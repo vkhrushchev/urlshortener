@@ -2,13 +2,12 @@ package repository
 
 import (
 	"context"
-	"os"
-	"testing"
-
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
 	"github.com/vkhrushchev/urlshortener/internal/app/entity"
 	"github.com/vkhrushchev/urlshortener/internal/middleware"
+	"os"
+	"testing"
 )
 
 const TestDataFile = "json_short_url_test_data.json"
@@ -36,7 +35,7 @@ func (s *JSONFileShortURLRepositoryTestSuite) TearDownTest() {
 
 func (s *JSONFileShortURLRepositoryTestSuite) TestSaveShortURL() {
 	testUserID := uuid.NewString()
-	testShortURL := &entity.ShortURLEntity{
+	testShortURL := entity.ShortURLEntity{
 		UUID:     uuid.NewString(),
 		ShortURI: "ghi",
 		LongURL:  "https://mail.ru",

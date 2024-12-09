@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"errors"
-
 	"github.com/google/uuid"
 	"github.com/vkhrushchev/urlshortener/internal/app/domain"
 	"github.com/vkhrushchev/urlshortener/internal/app/entity"
@@ -38,7 +37,7 @@ func (uc *CreateShortURLUseCase) CreateShortURL(ctx context.Context, url string)
 	userID := ctx.Value(middleware.UserIDContextKey).(string)
 	log.Infow("use_case: CreateShortURL", "url", url, "userID", userID)
 
-	shortURLEntity := &entity.ShortURLEntity{
+	shortURLEntity := entity.ShortURLEntity{
 		UUID:     uuid.NewString(),
 		ShortURI: util.RandStringRunes(10),
 		LongURL:  url,
@@ -49,13 +48,13 @@ func (uc *CreateShortURLUseCase) CreateShortURL(ctx context.Context, url string)
 	shortURLEntity, err := uc.repo.SaveShortURL(ctx, shortURLEntity)
 	if err != nil && errors.Is(err, repository.ErrConflict) {
 		log.Infow("use_case: conflict with existed entity", "url", url, "userID", userID)
-		return domain.ShortURLDomain(*shortURLEntity), ErrConflict
+		return domain.ShortURLDomain(shortURLEntity), ErrConflict
 	} else if err != nil {
 		log.Errorw("use_case: failed to save short url", "error", err)
 		return domain.ShortURLDomain{}, ErrUnexpected
 	}
 
-	return domain.ShortURLDomain(*shortURLEntity), nil
+	return domain.ShortURLDomain(shortURLEntity), nil
 }
 
 func (uc *CreateShortURLUseCase) CreateShortURLBatch(ctx context.Context, createShortURLBatchDomains []domain.CreateShortURLBatchDomain) ([]domain.CreateShortURLBatchResultDomain, error) {

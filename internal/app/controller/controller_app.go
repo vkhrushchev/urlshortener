@@ -4,33 +4,25 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
 	"io"
 	"net/http"
 	"strings"
-
-	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/vkhrushchev/urlshortener/internal/util"
 )
 
-// AppController используется для обработки не API-запросов приложения
 type AppController struct {
-	baseURL               string                         // URL до сервера с развернутым приложением
-	createShortURLUseCase usecase.ICreateShortURLUseCase // Сценарий создания короткой ссылки
-	getShortURLUseCase    usecase.IGetShortURLUseCase    // Сценарий получения короткой ссылки
+	baseURL               string
+	createShortURLUseCase usecase.ICreateShortURLUseCase
+	getShortURLUseCase    usecase.IGetShortURLUseCase
 }
 
-// NewAppController создает новый экземпляр структуры AppController
-//
-//	baseURL - URL до сервера с развернутым приложением
-//	createShortURLUseCase - use case создания короткой ссылки
-//	getShortURLUseCase - use case получения короткой ссылки
 func NewAppController(
 	baseURL string,
 	createShortURLUseCase usecase.ICreateShortURLUseCase,
-	getShortURLUseCase usecase.IGetShortURLUseCase,
-) *AppController {
+	getShortURLUseCase usecase.IGetShortURLUseCase) *AppController {
 	return &AppController{
 		baseURL:               baseURL,
 		createShortURLUseCase: createShortURLUseCase,
@@ -38,16 +30,6 @@ func NewAppController(
 	}
 }
 
-// CreateShortURLHandler обрабатывает запрос на создание короткой ссылки
-//
-//	@Summary	Создание короткой ссылки
-//	@Accepts	plain
-//	@Produce	plain
-//	@Success	201	{string}	string	""
-//	@Success	409	{string}	string	"короткая ссылка уже существует"
-//	@Failure	500	{string}	string	"внутренняя ошибка сервиса"
-//	@Router		/ [post]
-//	@Param		body	body	string	true	"ссылка которую требуется сократить"
 func (c *AppController) CreateShortURLHandler(w http.ResponseWriter, r *http.Request) {
 	var bodyBuffer bytes.Buffer
 	_, err := bodyBuffer.ReadFrom(r.Body)
@@ -79,6 +61,12 @@ func (c *AppController) CreateShortURLHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	log.Infow(
+		"app: short_url_added",
+		"shortURI", shortURLDomain.ShortURI,
+		"longURL", shortURLDomain.LongURL,
+	)
+
 	w.Header().Add("Content-Type", "plain/text")
 	if err != nil && errors.Is(err, usecase.ErrConflict) {
 		w.WriteHeader(http.StatusConflict)
@@ -95,23 +83,15 @@ func (c *AppController) CreateShortURLHandler(w http.ResponseWriter, r *http.Req
 	}
 }
 
-// GetURLHandler возвращает полную ссылку по короткой ссылке
-//
-//	@Summary	получить короткую ссылку
-//	@Accepts	plain
-//	@Produce	plain
-//	@Success	307	{string}	string
-//	@Failure	404	{string}	string	"короткая ссылка не найдена"
-//	@Failure	410	{string}	string	"короткая ссылка удалена"
-//	@Failure	500	{string}	string	"внутренняя ошибка сервиса"
-//	@Router		/{shortURI} [get]
-//	@Param		shortURI	path	string	true	"идентификатор короткой ссылки"
 func (c *AppController) GetURLHandler(w http.ResponseWriter, r *http.Request) {
 	shortURI := chi.URLParam(r, "id")
 
 	shortURLEntry, err := c.getShortURLUseCase.GetShortURL(r.Context(), shortURI)
 	if err != nil && !errors.Is(err, usecase.ErrNotFound) {
-		log.Errorw("app: error when get original url from storage", "err", err)
+		log.Errorw(
+			"app: error when get original url from storage",
+			"error", err.Error(),
+		)
 
 		w.Header().Add("Content-Type", "plain/text")
 		w.WriteHeader(http.StatusInternalServerError)
