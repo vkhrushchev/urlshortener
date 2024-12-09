@@ -66,17 +66,17 @@ func NewJSONFileShortURLRepository(path string) (*JSONFileShortURLRepository, er
 	return jsonFileShortURLRepository, nil
 }
 
-func (r *JSONFileShortURLRepository) SaveShortURL(ctx context.Context, shortURLEntity entity.ShortURLEntity) (entity.ShortURLEntity, error) {
+func (r *JSONFileShortURLRepository) SaveShortURL(ctx context.Context, shortURLEntity *entity.ShortURLEntity) (*entity.ShortURLEntity, error) {
 	shortURLEntity, err := r.InMemoryShortURLRepository.SaveShortURL(ctx, shortURLEntity)
 	if err != nil {
 		log.Errorw("repository: error when save short url", "err", err)
-		return entity.ShortURLEntity{}, err
+		return nil, err
 	}
 
 	file, err := os.OpenFile(r.path, os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		log.Errorw("repository: error when open file", "path", r.path, "err", err)
-		return entity.ShortURLEntity{}, ErrUnexpected
+		return nil, ErrUnexpected
 	}
 
 	defer func(file *os.File) {
@@ -94,7 +94,7 @@ func (r *JSONFileShortURLRepository) SaveShortURL(ctx context.Context, shortURLE
 		)
 		err = fmt.Errorf("storage: error when marshal storageJSON to JSON: %v", err)
 
-		return entity.ShortURLEntity{}, err
+		return nil, err
 	}
 
 	shortURLEntityJSONBytes = append(shortURLEntityJSONBytes, '\n')
@@ -107,7 +107,7 @@ func (r *JSONFileShortURLRepository) SaveShortURL(ctx context.Context, shortURLE
 		)
 		err = fmt.Errorf("storage: error when write storageJSON to file: %v", err)
 
-		return entity.ShortURLEntity{}, err
+		return nil, err
 	}
 
 	return shortURLEntity, nil

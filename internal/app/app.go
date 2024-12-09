@@ -1,10 +1,9 @@
 package app
 
 import (
-	"net/http"
-
 	"github.com/vkhrushchev/urlshortener/internal/app/controller"
 	"github.com/vkhrushchev/urlshortener/internal/middleware"
+	"net/http"
 
 	"github.com/go-chi/chi/v5"
 
@@ -71,7 +70,7 @@ func (a *URLShortenerApp) RegisterHandlers() {
 
 func (a *URLShortenerApp) Run() error {
 	log.Infow(
-		"app: URLShortenerApp stating",
+		"app: URLShortenerApp stated",
 		"runAddr", a.runAddr,
 	)
 

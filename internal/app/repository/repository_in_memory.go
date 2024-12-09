@@ -27,8 +27,8 @@ func (r *InMemoryShortURLRepository) GetShortURLByShortURI(ctx context.Context, 
 	return *shortURLEntry, nil
 }
 
-func (r *InMemoryShortURLRepository) SaveShortURL(ctx context.Context, shortURLEntity entity.ShortURLEntity) (entity.ShortURLEntity, error) {
-	r.storage[shortURLEntity.ShortURI] = &shortURLEntity
+func (r *InMemoryShortURLRepository) SaveShortURL(ctx context.Context, shortURLEntity *entity.ShortURLEntity) (*entity.ShortURLEntity, error) {
+	r.storage[shortURLEntity.ShortURI] = shortURLEntity
 
 	userID := ctx.Value(middleware.UserIDContextKey).(string)
 	shortURLEntitiesByUserID := r.storageByUserID[userID]
@@ -39,18 +39,18 @@ func (r *InMemoryShortURLRepository) SaveShortURL(ctx context.Context, shortURLE
 	shortURLEntitiesByUserID = append(shortURLEntitiesByUserID, r.storage[shortURLEntity.ShortURI])
 	r.storageByUserID[userID] = shortURLEntitiesByUserID
 
-	return *r.storage[shortURLEntity.ShortURI], nil
+	return r.storage[shortURLEntity.ShortURI], nil
 }
 
 func (r *InMemoryShortURLRepository) SaveShortURLs(ctx context.Context, shortURLEntities []entity.ShortURLEntity) ([]entity.ShortURLEntity, error) {
 	result := make([]entity.ShortURLEntity, 0, len(shortURLEntities))
 	for _, shortURLEntity := range shortURLEntities {
-		savedShortURLEntity, err := r.SaveShortURL(ctx, shortURLEntity)
+		savedShortURLEntity, err := r.SaveShortURL(ctx, &shortURLEntity)
 		if err != nil {
 			return nil, err
 		}
 
-		result = append(result, savedShortURLEntity)
+		result = append(result, *savedShortURLEntity)
 	}
 
 	return result, nil
