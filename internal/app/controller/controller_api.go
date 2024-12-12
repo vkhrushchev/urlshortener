@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/vkhrushchev/urlshortener/internal/app/domain"
@@ -55,47 +54,30 @@ func NewAPIController(
 //	@Router		/api/shorten [post]
 //	@Param		body	body	dto.APICreateShortURLRequest	true "запрос на создание короткой ссылки"
 func (c *APIController) CreateShortURLHandler(w http.ResponseWriter, r *http.Request) {
-	apiResponse := &dto.APICreateShortURLResponse{}
-
 	contentType := r.Header.Get("Content-Type")
 	if contentType != "application/json" {
-		apiResponse.ErrorStatus = fmt.Sprintf("%d", http.StatusBadRequest)
-		apiResponse.ErrorDescription = fmt.Sprintf("Content-Type = \"%s\" not supported", contentType)
-
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(apiResponse)
-
 		return
 	}
 
 	var apiRequest dto.APICreateShortURLRequest
 	if err := json.NewDecoder(r.Body).Decode(&apiRequest); err != nil {
 		log.Errorw("app: error when decode request body from json", "err", err)
-
-		apiResponse.ErrorStatus = fmt.Sprintf("%d", http.StatusBadRequest)
-		apiResponse.ErrorDescription = fmt.Sprintf("Error when decoding request body: %s", err.Error())
-
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(apiResponse)
-
 		return
 	}
 
 	longURL := apiRequest.URL
 	shortURLDomain, err := c.createShortURLUseCase.CreateShortURL(r.Context(), longURL)
 	if err != nil && !errors.Is(err, usecase.ErrConflict) {
-		apiResponse.ErrorStatus = fmt.Sprintf("%d", http.StatusInternalServerError)
-		apiResponse.ErrorDescription = fmt.Sprintf("Error when saving short URL: %s", err.Error())
-
-		w.Header().Set("Content-Type", "application/json")
+		log.Errorw("app: error when create shortURL", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(apiResponse)
-
 		return
 	}
 
+	apiResponse := dto.APICreateShortURLResponse{}
 	apiResponse.Result = util.GetShortURL(c.baseURL, shortURLDomain.ShortURI)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -105,7 +87,9 @@ func (c *APIController) CreateShortURLHandler(w http.ResponseWriter, r *http.Req
 		w.WriteHeader(http.StatusCreated)
 	}
 
-	json.NewEncoder(w).Encode(apiResponse)
+	if err := json.NewEncoder(w).Encode(apiResponse); err != nil {
+		log.Errorw("app: error writing response", "err", err)
+	}
 }
 
 // CreateShortURLBatchHandler обрабатывает запрос на создание коротких ссылок пачкой
@@ -128,7 +112,6 @@ func (c *APIController) CreateShortURLBatchHandler(w http.ResponseWriter, r *htt
 	var apiRequest dto.APICreateShortURLBatchRequest
 	if err := json.NewDecoder(r.Body).Decode(&apiRequest); err != nil {
 		log.Errorw("app: error when decode request body from json", "err", err)
-
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -144,8 +127,7 @@ func (c *APIController) CreateShortURLBatchHandler(w http.ResponseWriter, r *htt
 
 	createShortURLBatchResultDomains, err := c.createShortURLUseCase.CreateShortURLBatch(r.Context(), createShortURLBatchDomains)
 	if err != nil {
-		log.Errorw("app: error when store batch of URLs", "err", err)
-
+		log.Errorw("app: error when create batch of shortURLs", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -161,7 +143,10 @@ func (c *APIController) CreateShortURLBatchHandler(w http.ResponseWriter, r *htt
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(apiResponse)
+
+	if err := json.NewEncoder(w).Encode(apiResponse); err != nil {
+		log.Errorw("app: error writing response", "err", err)
+	}
 }
 
 // GetShortURLByUserID обрабатывает запрос на получение коротких ссылок созданных пользователем
@@ -178,8 +163,7 @@ func (c *APIController) GetShortURLByUserID(w http.ResponseWriter, r *http.Reque
 	userID := r.Context().Value(middleware.UserIDContextKey).(string)
 	shortURLDomains, err := c.getShortURLUseCase.GetShortURLsByUserID(r.Context(), userID)
 	if err != nil {
-		log.Errorw("app: error when get shortURL by userID", "userID", userID, "err", err)
-
+		log.Errorw("app: error when get shortURLs by userID", "userID", userID, "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -200,7 +184,10 @@ func (c *APIController) GetShortURLByUserID(w http.ResponseWriter, r *http.Reque
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(apiResponse)
+
+	if err := json.NewEncoder(w).Encode(apiResponse); err != nil {
+		log.Errorw("app: error writing response", "err", err)
+	}
 }
 
 // DeleteShortURLs обрабатывает запрос на удаление коротких ссылок
@@ -220,18 +207,16 @@ func (c *APIController) DeleteShortURLs(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	var apiRequest []string
-	if err := json.NewDecoder(r.Body).Decode(&apiRequest); err != nil {
+	var shortURIs []string
+	if err := json.NewDecoder(r.Body).Decode(&shortURIs); err != nil {
 		log.Errorw("app: error when decode request body from json", "err", err)
-
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	err := c.deleteShortURLUseCase.DeleteShortURLsByShortURIs(context.WithoutCancel(r.Context()), apiRequest)
+	err := c.deleteShortURLUseCase.DeleteShortURLsByShortURIs(context.WithoutCancel(r.Context()), shortURIs)
 	if err != nil {
-		log.Errorw("app: error when delete by shortURIs", "err", err)
-
+		log.Errorw("app: error when delete shortURLs by shortURIs", "shortURIs", shortURIs, "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

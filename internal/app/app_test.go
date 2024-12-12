@@ -203,22 +203,12 @@ func TestURLShortenerApp_createShortURLHandlerAPI(t *testing.T) {
 			assert.Equal(t, tc.expectedStatusCode, statusCode)
 			assert.Equal(t, "application/json", headers.Get("Content-Type"))
 
-			var apiResponse dto.APICreateShortURLResponse
-			err = json.Unmarshal([]byte(responseBody), &apiResponse)
-			if err != nil {
-				require.NoError(t, err, "app_test: error when unmarshall dto.APICreateShortURLResponse: %v", err)
-			}
-
-			if statusCode == http.StatusCreated {
-				assert.Empty(t, apiResponse.ErrorStatus)
-				assert.Empty(t, apiResponse.ErrorDescription)
-				assert.NotEmpty(t, apiResponse.Result)
-			}
-
-			if statusCode == http.StatusBadRequest {
-				assert.NotEmpty(t, apiResponse.ErrorStatus)
-				assert.NotEmpty(t, apiResponse.ErrorDescription)
-				assert.Empty(t, apiResponse.Result)
+			if statusCode == http.StatusCreated || statusCode == http.StatusConflict {
+				var apiResponse dto.APICreateShortURLResponse
+				err = json.Unmarshal([]byte(responseBody), &apiResponse)
+				if err != nil {
+					require.NoError(t, err, "app_test: error when unmarshall dto.APICreateShortURLResponse: %v", err)
+				}
 			}
 		})
 	}

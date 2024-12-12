@@ -1,9 +1,7 @@
 package controller
 
 import (
-	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -49,33 +47,18 @@ func NewAppController(
 //	@Router		/ [post]
 //	@Param		body	body	string	true	"ссылка которую требуется сократить"
 func (c *AppController) CreateShortURLHandler(w http.ResponseWriter, r *http.Request) {
-	var bodyBuffer bytes.Buffer
-	_, err := bodyBuffer.ReadFrom(r.Body)
+	requestBodyBytes, err := io.ReadAll(r.Body)
 	if err != nil && !errors.Is(err, io.EOF) {
-		err = fmt.Errorf("app: error reading requestBody: %v", err)
-		if err != nil {
-			log.Errorw(err.Error())
-		}
-
+		log.Errorw("app: error reading request body", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		_, err = w.Write([]byte("app: error reading requestBody"))
-		if err != nil {
-			log.Errorw(err.Error())
-		}
-
 		return
 	}
 
-	longURL := strings.TrimSpace(bodyBuffer.String())
+	longURL := strings.TrimSpace(string(requestBodyBytes))
 	shortURLDomain, err := c.createShortURLUseCase.CreateShortURL(r.Context(), longURL)
 	if err != nil && !errors.Is(err, usecase.ErrConflict) {
+		log.Errorw("app: error when create shortURL", "err", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
-		log.Errorw(err.Error())
-		_, err = w.Write([]byte(err.Error()))
-		if err != nil {
-			log.Errorw(err.Error())
-		}
-
 		return
 	}
 
@@ -88,10 +71,8 @@ func (c *AppController) CreateShortURLHandler(w http.ResponseWriter, r *http.Req
 
 	shortURL := util.GetShortURL(c.baseURL, shortURLDomain.ShortURI)
 
-	_, err = w.Write([]byte(shortURL))
-	if err != nil {
-		err = fmt.Errorf("app: error writing response: %v", err)
-		log.Errorw(err.Error())
+	if _, err = w.Write([]byte(shortURL)); err != nil {
+		log.Errorw("app: error writing response", "err", err.Error())
 	}
 }
 
@@ -111,8 +92,7 @@ func (c *AppController) GetURLHandler(w http.ResponseWriter, r *http.Request) {
 
 	shortURLEntry, err := c.getShortURLUseCase.GetShortURLByShortURI(r.Context(), shortURI)
 	if err != nil && !errors.Is(err, usecase.ErrNotFound) {
-		log.Errorw("app: error when get original url from storage", "err", err)
-
+		log.Errorw("app: error when get original url", "err", err)
 		w.Header().Add("Content-Type", "plain/text")
 		w.WriteHeader(http.StatusInternalServerError)
 		return

@@ -7,9 +7,7 @@ type APICreateShortURLRequest struct {
 
 // APICreateShortURLResponse структура с описанием ответа на запрос на создание короткой ссылки
 type APICreateShortURLResponse struct {
-	Result           string `json:"result,omitempty"`
-	ErrorStatus      string `json:"error_status,omitempty"`
-	ErrorDescription string `json:"error_description,omitempty"`
+	Result string `json:"result,omitempty"`
 }
 
 // APICreateShortURLBatchRequest слайс запроса на создание коротких ссылок пачкой
