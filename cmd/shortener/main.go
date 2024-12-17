@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/vkhrushchev/urlshortener/internal/app/repository"
 	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
 
@@ -13,7 +14,20 @@ import (
 
 var log = zap.Must(zap.NewDevelopment()).Sugar()
 
+// buildVersion = определяет версию приложения
+// buildDate = определяет дату сборки
+// buildCommit = определяет коммит сборки
+var (
+	buildVersion = "N/A"
+	buildDate    = "N/A"
+	buildCommit  = "N/A"
+)
+
 func main() {
+	fmt.Printf("Build version: %s\n", buildVersion)
+	fmt.Printf("Build date: %s\n", buildDate)
+	fmt.Printf("Build commit: %s\n", buildCommit)
+
 	parseFlags()
 
 	dbLookup, err := db.NewDBLookup(flags.databaseDSN)
