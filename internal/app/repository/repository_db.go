@@ -120,8 +120,8 @@ func (r *DBShortURLRepository) SaveShortURLs(ctx context.Context, shortURLEntiti
 		return nil, ErrUnexpected
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
-			log.Errorw("repository: error when rollback transaction", "err", err)
+		if rollbackErr := tx.Rollback(); rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
+			log.Errorw("repository: error when rollback transaction", "rollbackErr", rollbackErr)
 		}
 	}()
 
