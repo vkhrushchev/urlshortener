@@ -16,9 +16,9 @@ import (
 
 // AppController используется для обработки не API-запросов приложения
 type AppController struct {
-	baseURL               string                         // URL до сервера с развернутым приложением
 	createShortURLUseCase usecase.ICreateShortURLUseCase // Сценарий создания короткой ссылки
 	getShortURLUseCase    usecase.IGetShortURLUseCase    // Сценарий получения короткой ссылки
+	baseURL               string                         // URL до сервера с развернутым приложением
 }
 
 // NewAppController создает новый экземпляр структуры AppController

@@ -5,10 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
-
 	"github.com/vkhrushchev/urlshortener/internal/app/domain"
 	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
+	"net/http"
 
 	"github.com/vkhrushchev/urlshortener/internal/app/dto"
 	"github.com/vkhrushchev/urlshortener/internal/middleware"
@@ -17,10 +16,10 @@ import (
 
 // APIController используется для обработки API-запросов приложения
 type APIController struct {
-	baseURL               string                         // URL до сервера с развернутым приложением
 	createShortURLUseCase usecase.ICreateShortURLUseCase // Сценарий создания короткой ссылки
 	getShortURLUseCase    usecase.IGetShortURLUseCase    // Сценарий получения короткой ссылки
 	deleteShortURLUseCase usecase.IDeleteShortURLUseCase // Сценарий удаления короткой ссылки
+	baseURL               string                         // URL до сервера с развернутым приложением
 }
 
 // NewAPIController создает новый экземпляр структуры APIController

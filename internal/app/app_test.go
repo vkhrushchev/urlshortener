@@ -96,14 +96,14 @@ func TestURLShortenerApp_getURLHandler(t *testing.T) {
 	tests := []struct {
 		name     string
 		path     string
-		status   int
 		location string
+		status   int
 	}{
 		{
 			name:     "get success",
 			path:     "/" + shortURLEntry.ShortURI,
-			status:   http.StatusTemporaryRedirect,
 			location: "https://google.com",
+			status:   http.StatusTemporaryRedirect,
 		},
 		{
 			name:   "not found",
@@ -150,26 +150,26 @@ func TestURLShortenerApp_createShortURLHandlerAPI(t *testing.T) {
 	defer ts.Close()
 
 	testCases := []struct {
+		apiRequest         *dto.APICreateShortURLRequest
 		name               string
 		contentType        string
 		apiRequestRaw      string
-		apiRequest         *dto.APICreateShortURLRequest
 		expectedStatusCode int
 	}{
 		{
-			name:        "success",
-			contentType: "application/json",
 			apiRequest: &dto.APICreateShortURLRequest{
 				URL: "https://google.com",
 			},
+			name:               "success",
+			contentType:        "application/json",
 			expectedStatusCode: http.StatusCreated,
 		},
 		{
-			name:        "wrong content type",
-			contentType: "plain/text",
 			apiRequest: &dto.APICreateShortURLRequest{
 				URL: "https://google.com",
 			},
+			name:               "wrong content type",
+			contentType:        "plain/text",
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
