@@ -80,10 +80,10 @@ func (mr *MockIShortURLRepositoryMockRecorder) GetShortURLsByUserID(ctx, userID 
 }
 
 // SaveShortURL mocks base method.
-func (m *MockIShortURLRepository) SaveShortURL(ctx context.Context, shortURLEntity entity.ShortURLEntity) (entity.ShortURLEntity, error) {
+func (m *MockIShortURLRepository) SaveShortURL(ctx context.Context, shortURLEntity *entity.ShortURLEntity) (*entity.ShortURLEntity, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SaveShortURL", ctx, shortURLEntity)
-	ret0, _ := ret[0].(entity.ShortURLEntity)
+	ret0, _ := ret[0].(*entity.ShortURLEntity)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
