@@ -14,11 +14,11 @@ import (
 
 type InMemoryRepositoryTestSuite struct {
 	suite.Suite
-	testUserIDFirst    string
-	testShortURLFirst  entity.ShortURLEntity
-	testUserIDSecond   string
-	testShortURLSecond entity.ShortURLEntity
 	repository         *InMemoryShortURLRepository
+	testUserIDFirst    string
+	testUserIDSecond   string
+	testShortURLFirst  entity.ShortURLEntity
+	testShortURLSecond entity.ShortURLEntity
 }
 
 func (suite *InMemoryRepositoryTestSuite) SetupTest() {
