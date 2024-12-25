@@ -40,8 +40,8 @@ func readConfig() Config {
 
 	var jsonConfig Config
 	if configFile != "" {
-		parseJsonConfig(&jsonConfig)
-		overrideJsonByFlags(&jsonConfig)
+		parseJSONConfig(&jsonConfig)
+		overrideJSONByFlags(&jsonConfig)
 	}
 
 	parseEnv(&jsonConfig)
@@ -61,7 +61,7 @@ func parseFlags() {
 	flag.Parse()
 }
 
-func parseJsonConfig(config *Config) {
+func parseJSONConfig(config *Config) {
 	f, err := os.Open(configFile)
 	if err != nil {
 		log.Fatalf("Error opening config file: %v", err)
@@ -78,7 +78,7 @@ func parseJsonConfig(config *Config) {
 	}
 }
 
-func overrideJsonByFlags(config *Config) {
+func overrideJSONByFlags(config *Config) {
 	if runAddr != "" && runAddr != runAddrDefault {
 		config.RunAddr = runAddr
 	}
