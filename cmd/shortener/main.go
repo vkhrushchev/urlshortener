@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/vkhrushchev/urlshortener/internal/app/repository"
 	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
 
@@ -24,9 +23,9 @@ var (
 )
 
 func main() {
-	fmt.Printf("Build version: %s\n", buildVersion)
-	fmt.Printf("Build date: %s\n", buildDate)
-	fmt.Printf("Build commit: %s\n", buildCommit)
+	log.Infof("Build version: %s\n", buildVersion)
+	log.Infof("Build date: %s\n", buildDate)
+	log.Infof("Build commit: %s\n", buildCommit)
 
 	parseFlags()
 
