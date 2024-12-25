@@ -32,7 +32,7 @@ func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
 
-	app := NewURLShortenerApp("", appController, apiController, healthController)
+	app := NewURLShortenerApp("", false, appController, apiController, healthController)
 	app.RegisterHandlers()
 
 	ts := httptest.NewServer(app.router)
@@ -80,7 +80,7 @@ func TestURLShortenerApp_getURLHandler(t *testing.T) {
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
 
-	app := NewURLShortenerApp("", appController, apiController, healthController)
+	app := NewURLShortenerApp("", false, appController, apiController, healthController)
 	app.RegisterHandlers()
 
 	// добавляем подготовленные данные для тестов
@@ -143,7 +143,7 @@ func TestURLShortenerApp_createShortURLHandlerAPI(t *testing.T) {
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
 
-	app := NewURLShortenerApp("", appController, apiController, healthController)
+	app := NewURLShortenerApp("", false, appController, apiController, healthController)
 	app.RegisterHandlers()
 
 	ts := httptest.NewServer(app.router)
@@ -236,7 +236,7 @@ func TestURLShortenerApp_createShortURLBatchHandlerAPI(t *testing.T) {
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
 
-	app := NewURLShortenerApp("", appController, apiController, healthController)
+	app := NewURLShortenerApp("", false, appController, apiController, healthController)
 	app.RegisterHandlers()
 
 	ts := httptest.NewServer(app.router)
