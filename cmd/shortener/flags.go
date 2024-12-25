@@ -43,8 +43,12 @@ func readConfig() Config {
 		parseJSONConfig(&jsonConfig)
 	}
 
+	log.Debugw("config: ", "config", jsonConfig)
+
 	overrideConfigByFlags(&jsonConfig)
+	log.Debugw("overrideConfigByFlags: ", "config", jsonConfig)
 	overrideConfigByEnv(&jsonConfig)
+	log.Debugw("overrideConfigByEnv: ", "config", jsonConfig)
 
 	return jsonConfig
 }
