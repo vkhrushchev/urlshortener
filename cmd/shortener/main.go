@@ -27,24 +27,24 @@ func main() {
 	log.Infof("Build date: %s\n", buildDate)
 	log.Infof("Build commit: %s\n", buildCommit)
 
-	parseFlags()
+	config := readConfig()
 
-	dbLookup, err := db.NewDBLookup(flags.databaseDSN)
+	dbLookup, err := db.NewDBLookup(config.DatabaseDSN)
 	if err != nil {
 		log.Fatalf("main: error when init DBLookup: %v", err)
 	}
 
-	shortURLRepo := initShortURLRepository(dbLookup, flags.fileStoragePath)
+	shortURLRepo := initShortURLRepository(dbLookup, config)
 
 	createShortURLUseCase := usecase.NewCreateShortURLUseCase(shortURLRepo)
 	getShortURLUseCase := usecase.NewGetShortURLUseCase(shortURLRepo)
 	deleteShortURLUseCase := usecase.NewDeleteShortURLUseCase(shortURLRepo)
 
-	appController := controller.NewAppController(flags.baseURL, createShortURLUseCase, getShortURLUseCase)
-	apiController := controller.NewAPIController(flags.baseURL, createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
+	appController := controller.NewAppController(config.BaseURL, createShortURLUseCase, getShortURLUseCase)
+	apiController := controller.NewAPIController(config.BaseURL, createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
 	healthController := controller.NewHealthController(dbLookup)
 
-	shortenerApp := app.NewURLShortenerApp(flags.runAddr, flags.enableHTTPS, appController, apiController, healthController)
+	shortenerApp := app.NewURLShortenerApp(config.RunAddr, config.EnableHTTPS, appController, apiController, healthController)
 
 	shortenerApp.RegisterHandlers()
 	err = shortenerApp.Run()
@@ -53,11 +53,11 @@ func main() {
 	}
 }
 
-func initShortURLRepository(dbLookup *db.DBLookup, fileStoragePath string) repository.IShortURLRepository {
+func initShortURLRepository(dbLookup *db.DBLookup, config Config) repository.IShortURLRepository {
 	var repo repository.IShortURLRepository
 	var err error
 
-	if flags.databaseDSN != "" {
+	if config.DatabaseDSN != "" {
 		repo = repository.NewDBShortURLRepository(dbLookup)
 		err = dbLookup.InitDB(context.Background())
 		if err != nil {
@@ -67,8 +67,8 @@ func initShortURLRepository(dbLookup *db.DBLookup, fileStoragePath string) repos
 		log.Infow("main: success init of DBShortURLRepository")
 	}
 
-	if repo == nil && flags.fileStoragePath != "" {
-		repo, err = repository.NewJSONFileShortURLRepository(fileStoragePath)
+	if repo == nil && config.FileStoragePath != "" {
+		repo, err = repository.NewJSONFileShortURLRepository(config.FileStoragePath)
 		if err != nil {
 			log.Fatalf("main: failure to init JSONFileShortURLRepository: %v", err)
 		}
