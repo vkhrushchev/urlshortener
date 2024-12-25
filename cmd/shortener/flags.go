@@ -41,10 +41,10 @@ func readConfig() Config {
 	var jsonConfig Config
 	if configFile != "" {
 		parseJSONConfig(&jsonConfig)
-		overrideJSONByFlags(&jsonConfig)
 	}
 
-	parseEnv(&jsonConfig)
+	overrideConfigByFlags(&jsonConfig)
+	overrideConfigByEnv(&jsonConfig)
 
 	return jsonConfig
 }
@@ -78,25 +78,25 @@ func parseJSONConfig(config *Config) {
 	}
 }
 
-func overrideJSONByFlags(config *Config) {
-	if runAddr != "" && runAddr != runAddrDefault {
+func overrideConfigByFlags(config *Config) {
+	if config.RunAddr != "" && runAddr != "" && runAddr != runAddrDefault {
 		config.RunAddr = runAddr
 	}
 
-	if baseURL != "" && baseURL != baseURLDefault {
+	if config.BaseURL != "" && baseURL != "" && baseURL != baseURLDefault {
 		config.BaseURL = baseURL
 	}
 
-	if fileStoragePath != "" {
+	if config.FileStoragePath != "" && fileStoragePath != "" {
 		config.FileStoragePath = fileStoragePath
 	}
 
-	if databaseDSN != "" {
+	if config.DatabaseDSN != "" && databaseDSN != "" {
 		config.DatabaseDSN = databaseDSN
 	}
 }
 
-func parseEnv(config *Config) {
+func overrideConfigByEnv(config *Config) {
 	if serverAddrEnv, ok := os.LookupEnv("SERVER_ADDR"); ok {
 		config.RunAddr = serverAddrEnv
 	}
