@@ -79,12 +79,16 @@ func parseJSONConfig(config *Config) {
 }
 
 func overrideConfigByFlags(config *Config) {
-	if config.RunAddr != "" && runAddr != "" && runAddr != runAddrDefault {
+	if runAddr != "" && runAddr != runAddrDefault {
 		config.RunAddr = runAddr
+	} else if config.RunAddr == "" {
+		config.RunAddr = runAddrDefault
 	}
 
-	if config.BaseURL != "" && baseURL != "" && baseURL != baseURLDefault {
+	if baseURL != "" && baseURL != baseURLDefault {
 		config.BaseURL = baseURL
+	} else if config.BaseURL == "" {
+		config.BaseURL = baseURLDefault
 	}
 
 	if config.FileStoragePath != "" && fileStoragePath != "" {
