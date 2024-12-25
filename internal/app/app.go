@@ -1,8 +1,13 @@
 package app
 
 import (
+	"context"
+	"errors"
 	"golang.org/x/crypto/acme/autocert"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/vkhrushchev/urlshortener/internal/app/controller"
 	"github.com/vkhrushchev/urlshortener/internal/middleware"
@@ -84,6 +89,24 @@ func (a *URLShortenerApp) Run() error {
 		"runAddr", a.runAddr,
 	)
 
+	server := &http.Server{
+		Addr:    a.runAddr,
+		Handler: a.router,
+	}
+
+	gracefulShutdownChan := make(chan struct{})
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	go func() {
+		<-signalChan
+
+		if err := server.Shutdown(context.Background()); err != nil {
+			log.Errorw("app: failed to shutdown server", "error", err)
+		}
+
+		close(gracefulShutdownChan)
+	}()
+
 	if a.enableHTTPS {
 		manager := &autocert.Manager{
 			Cache:      autocert.DirCache("cache-dir"),
@@ -91,17 +114,13 @@ func (a *URLShortenerApp) Run() error {
 			HostPolicy: autocert.HostWhitelist("localhost"),
 		}
 
-		server := &http.Server{
-			Addr:      a.runAddr,
-			Handler:   a.router,
-			TLSConfig: manager.TLSConfig(),
-		}
+		server.TLSConfig = manager.TLSConfig()
 
-		if err := server.ListenAndServeTLS("", ""); err != nil {
+		if err := server.ListenAndServeTLS("", ""); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return err
 		}
 	} else {
-		if err := http.ListenAndServe(a.runAddr, a.router); err != nil {
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return err
 		}
 	}
