@@ -1,6 +1,7 @@
 package app
 
 import (
+	"golang.org/x/crypto/acme/autocert"
 	"net/http"
 
 	"github.com/vkhrushchev/urlshortener/internal/app/controller"
@@ -11,7 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var log = zap.Must(zap.NewProduction()).Sugar()
+var log = zap.Must(zap.NewDevelopment()).Sugar()
 
 // URLShortenerApp - структура с описанием приложения Shortener
 type URLShortenerApp struct {
@@ -20,20 +21,24 @@ type URLShortenerApp struct {
 	healthController *controller.HealthController
 	router           chi.Router
 	runAddr          string
+	enableHTTPS      bool
 }
 
 // NewURLShortenerApp создает экземпляр структуры URLShortenerApp
 func NewURLShortenerApp(
 	runAddr string,
+	enableHTTPS bool,
 	appController *controller.AppController,
 	apiController *controller.APIController,
-	healthController *controller.HealthController) *URLShortenerApp {
+	healthController *controller.HealthController,
+) *URLShortenerApp {
 	return &URLShortenerApp{
 		appController:    appController,
 		apiController:    apiController,
 		healthController: healthController,
 		router:           chi.NewRouter(),
 		runAddr:          runAddr,
+		enableHTTPS:      enableHTTPS,
 	}
 }
 
@@ -79,9 +84,26 @@ func (a *URLShortenerApp) Run() error {
 		"runAddr", a.runAddr,
 	)
 
-	err := http.ListenAndServe(a.runAddr, a.router)
-	if err != nil {
-		return err
+	if a.enableHTTPS {
+		manager := &autocert.Manager{
+			Cache:      autocert.DirCache("cache-dir"),
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: autocert.HostWhitelist("localhost"),
+		}
+
+		server := &http.Server{
+			Addr:      a.runAddr,
+			Handler:   a.router,
+			TLSConfig: manager.TLSConfig(),
+		}
+
+		if err := server.ListenAndServeTLS("", ""); err != nil {
+			return err
+		}
+	} else {
+		if err := http.ListenAndServe(a.runAddr, a.router); err != nil {
+			return err
+		}
 	}
 
 	return nil

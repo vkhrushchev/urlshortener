@@ -44,7 +44,7 @@ func main() {
 	apiController := controller.NewAPIController(flags.baseURL, createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
 	healthController := controller.NewHealthController(dbLookup)
 
-	shortenerApp := app.NewURLShortenerApp(flags.runAddr, appController, apiController, healthController)
+	shortenerApp := app.NewURLShortenerApp(flags.runAddr, flags.enableHTTPS, appController, apiController, healthController)
 
 	shortenerApp.RegisterHandlers()
 	err = shortenerApp.Run()

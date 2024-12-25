@@ -504,3 +504,13 @@ jobs:
           shortenertestbeta -test.v -test.run=^TestIteration20$ \
               -source-path=. \
 
+      - name: "Code increment #21"
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.head_ref == 'iter21' ||
+          github.head_ref == 'iter22' ||
+          github.head_ref == 'iter23' ||
+          github.head_ref == 'iter24'
+        run: |
+          shortenertestbeta -test.v -test.run=^TestIteration21$ \
+              -source-path=. \
