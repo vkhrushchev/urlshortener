@@ -42,8 +42,8 @@ func NewJSONFileShortURLRepository(path string) (*JSONFileShortURLRepository, er
 	}
 
 	defer func(file *os.File) {
-		if err := file.Close(); err != nil {
-			log.Errorw("repository: error when close file", "err", err)
+		if fileCloseErr := file.Close(); fileCloseErr != nil {
+			log.Errorw("repository: error when close file", "fileCloseErr", fileCloseErr)
 		}
 	}(file)
 
@@ -84,8 +84,8 @@ func (r *JSONFileShortURLRepository) SaveShortURL(ctx context.Context, shortURLE
 	}
 
 	defer func(file *os.File) {
-		if err := file.Close(); err != nil {
-			log.Errorw("repository: error when close file", "err", err)
+		if fileCloseErr := file.Close(); fileCloseErr != nil {
+			log.Errorw("repository: error when close file", "fileCloseErr", fileCloseErr)
 		}
 	}(file)
 
