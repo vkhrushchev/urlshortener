@@ -95,11 +95,11 @@ func overrideConfigByFlags(config *Config) {
 		config.BaseURL = baseURLDefault
 	}
 
-	if config.FileStoragePath != "" && fileStoragePath != "" {
+	if fileStoragePath != "" {
 		config.FileStoragePath = fileStoragePath
 	}
 
-	if config.DatabaseDSN != "" && databaseDSN != "" {
+	if databaseDSN != "" {
 		config.DatabaseDSN = databaseDSN
 	}
 }
