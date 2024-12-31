@@ -35,6 +35,7 @@ type Config struct {
 	EnableHTTPS     bool   `json:"enable_https"`
 }
 
+// ReadConfig - считывает конфигурацию из переменных окружения, параметров командной строки и конфигурационного файла
 func ReadConfig() Config {
 	parseFlags()
 	if configFile == "" {
