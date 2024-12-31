@@ -15,7 +15,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var log = zap.Must(zap.NewProduction()).Sugar()
+var log = zap.Must(zap.NewDevelopment()).Sugar()
 
 type loggedResponseWriter struct {
 	http.ResponseWriter

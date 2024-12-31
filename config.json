@@ -1,0 +1,7 @@
+{
+  "server_address": "localhost:8080",
+  "base_url": "http://localhost:8080",
+  "file_storage_path": "file_storage.json",
+  "database_dsn": "postgres://yp-sandbox:yp-sandbox@localhost:5432/yp-sandbox",
+  "enable_https": false
+}
