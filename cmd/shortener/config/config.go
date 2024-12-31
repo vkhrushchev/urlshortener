@@ -1,13 +1,16 @@
-package main
+package config
 
 import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"go.uber.org/zap"
 	"io"
 	"os"
 	"strconv"
 )
+
+var log = zap.Must(zap.NewDevelopment()).Sugar()
 
 const (
 	runAddrDefault = "localhost:8080"
@@ -32,7 +35,7 @@ type Config struct {
 	EnableHTTPS     bool   `json:"enable_https"`
 }
 
-func readConfig() Config {
+func ReadConfig() Config {
 	parseFlags()
 	if configFile == "" {
 		configFile = os.Getenv("CONFIG")
@@ -68,17 +71,17 @@ func parseFlags() {
 func parseJSONConfig(config *Config) {
 	f, err := os.Open(configFile)
 	if err != nil {
-		log.Fatalf("Error opening config file: %v", err)
+		log.Fatalf("config: error opening config file: %v", err)
 	}
 
 	defer func(f *os.File) {
 		if err := f.Close(); err != nil {
-			log.Fatalf("Error closing config file: %v", err)
+			log.Fatalf("config: error closing config file: %v", err)
 		}
 	}(f)
 
 	if err := json.NewDecoder(f).Decode(&config); err != nil && !errors.Is(err, io.EOF) {
-		log.Fatalf("Error parsing config file: %v", err)
+		log.Fatalf("config: error parsing config file: %v", err)
 	}
 }
 
@@ -125,7 +128,7 @@ func overrideConfigByEnv(config *Config) {
 		var err error
 		config.EnableHTTPS, err = strconv.ParseBool(enableHTTPSEnv)
 		if err != nil {
-			log.Fatalf("Error parsing ENABLE_HTTPS env variable: %v", err)
+			log.Fatalf("config: error parsing ENABLE_HTTPS env variable: %v", err)
 		}
 	}
 }

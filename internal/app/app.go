@@ -83,11 +83,8 @@ func (a *URLShortenerApp) RegisterHandlers() {
 }
 
 // Run запускает http-сервер с приложением
-func (a *URLShortenerApp) Run() error {
-	log.Infow(
-		"app: URLShortenerApp stated",
-		"runAddr", a.runAddr,
-	)
+func (a *URLShortenerApp) Run() {
+	log.Infow("app: URLShortenerApp stated", "runAddr", a.runAddr)
 
 	server := &http.Server{
 		Addr:    a.runAddr,
@@ -117,13 +114,14 @@ func (a *URLShortenerApp) Run() error {
 		server.TLSConfig = manager.TLSConfig()
 
 		if err := server.ListenAndServeTLS("", ""); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			return err
+			log.Fatalf("app: failed to listen and serve https server: %v", err)
 		}
 	} else {
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			return err
+			log.Fatalf("app: failed to listen and serve http server: %v", err)
 		}
 	}
 
-	return nil
+	<-gracefulShutdownChan
+	log.Infow("app: URLShortenerApp shutting down")
 }

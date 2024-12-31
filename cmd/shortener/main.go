@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/vkhrushchev/urlshortener/cmd/shortener/config"
 	"github.com/vkhrushchev/urlshortener/internal/app/repository"
 	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
 
@@ -27,33 +28,31 @@ func main() {
 	log.Infof("Build date: %s\n", buildDate)
 	log.Infof("Build commit: %s\n", buildCommit)
 
-	config := readConfig()
+	shortenerConfig := config.ReadConfig()
 
-	dbLookup, err := db.NewDBLookup(config.DatabaseDSN)
+	dbLookup, err := db.NewDBLookup(shortenerConfig.DatabaseDSN)
 	if err != nil {
 		log.Fatalf("main: error when init DBLookup: %v", err)
 	}
 
-	shortURLRepo := initShortURLRepository(dbLookup, config)
+	shortURLRepo := initShortURLRepository(dbLookup, shortenerConfig)
 
 	createShortURLUseCase := usecase.NewCreateShortURLUseCase(shortURLRepo)
 	getShortURLUseCase := usecase.NewGetShortURLUseCase(shortURLRepo)
 	deleteShortURLUseCase := usecase.NewDeleteShortURLUseCase(shortURLRepo)
 
-	appController := controller.NewAppController(config.BaseURL, createShortURLUseCase, getShortURLUseCase)
-	apiController := controller.NewAPIController(config.BaseURL, createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
+	appController := controller.NewAppController(shortenerConfig.BaseURL, createShortURLUseCase, getShortURLUseCase)
+	apiController := controller.NewAPIController(
+		shortenerConfig.BaseURL, createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
 	healthController := controller.NewHealthController(dbLookup)
 
-	shortenerApp := app.NewURLShortenerApp(config.RunAddr, config.EnableHTTPS, appController, apiController, healthController)
-
+	shortenerApp := app.NewURLShortenerApp(
+		shortenerConfig.RunAddr, shortenerConfig.EnableHTTPS, appController, apiController, healthController)
 	shortenerApp.RegisterHandlers()
-	err = shortenerApp.Run()
-	if err != nil {
-		log.Fatalf("main: error when run application: %v", err)
-	}
+	shortenerApp.Run()
 }
 
-func initShortURLRepository(dbLookup *db.DBLookup, config Config) repository.IShortURLRepository {
+func initShortURLRepository(dbLookup *db.DBLookup, config config.Config) repository.IShortURLRepository {
 	var repo repository.IShortURLRepository
 	var err error
 
