@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"github.com/vkhrushchev/urlshortener/cmd/shortener/config"
+	"github.com/vkhrushchev/urlshortener/config"
 	"github.com/vkhrushchev/urlshortener/internal/app/repository"
 	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
 
