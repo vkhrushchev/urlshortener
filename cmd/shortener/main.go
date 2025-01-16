@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/vkhrushchev/urlshortener/config"
 	"github.com/vkhrushchev/urlshortener/internal/app/repository"
 	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
 
@@ -27,37 +28,35 @@ func main() {
 	log.Infof("Build date: %s\n", buildDate)
 	log.Infof("Build commit: %s\n", buildCommit)
 
-	parseFlags()
+	shortenerConfig := config.ReadConfig()
 
-	dbLookup, err := db.NewDBLookup(flags.databaseDSN)
+	dbLookup, err := db.NewDBLookup(shortenerConfig.DatabaseDSN)
 	if err != nil {
 		log.Fatalf("main: error when init DBLookup: %v", err)
 	}
 
-	shortURLRepo := initShortURLRepository(dbLookup, flags.fileStoragePath)
+	shortURLRepo := initShortURLRepository(dbLookup, shortenerConfig)
 
 	createShortURLUseCase := usecase.NewCreateShortURLUseCase(shortURLRepo)
 	getShortURLUseCase := usecase.NewGetShortURLUseCase(shortURLRepo)
 	deleteShortURLUseCase := usecase.NewDeleteShortURLUseCase(shortURLRepo)
 
-	appController := controller.NewAppController(flags.baseURL, createShortURLUseCase, getShortURLUseCase)
-	apiController := controller.NewAPIController(flags.baseURL, createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
+	appController := controller.NewAppController(shortenerConfig.BaseURL, createShortURLUseCase, getShortURLUseCase)
+	apiController := controller.NewAPIController(
+		shortenerConfig.BaseURL, createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
 	healthController := controller.NewHealthController(dbLookup)
 
-	shortenerApp := app.NewURLShortenerApp(flags.runAddr, appController, apiController, healthController)
-
+	shortenerApp := app.NewURLShortenerApp(
+		shortenerConfig.RunAddr, shortenerConfig.EnableHTTPS, appController, apiController, healthController)
 	shortenerApp.RegisterHandlers()
-	err = shortenerApp.Run()
-	if err != nil {
-		log.Fatalf("main: error when run application: %v", err)
-	}
+	shortenerApp.Run()
 }
 
-func initShortURLRepository(dbLookup *db.DBLookup, fileStoragePath string) repository.IShortURLRepository {
+func initShortURLRepository(dbLookup *db.DBLookup, config config.Config) repository.IShortURLRepository {
 	var repo repository.IShortURLRepository
 	var err error
 
-	if flags.databaseDSN != "" {
+	if config.DatabaseDSN != "" {
 		repo = repository.NewDBShortURLRepository(dbLookup)
 		err = dbLookup.InitDB(context.Background())
 		if err != nil {
@@ -67,8 +66,8 @@ func initShortURLRepository(dbLookup *db.DBLookup, fileStoragePath string) repos
 		log.Infow("main: success init of DBShortURLRepository")
 	}
 
-	if repo == nil && flags.fileStoragePath != "" {
-		repo, err = repository.NewJSONFileShortURLRepository(fileStoragePath)
+	if repo == nil && config.FileStoragePath != "" {
+		repo, err = repository.NewJSONFileShortURLRepository(config.FileStoragePath)
 		if err != nil {
 			log.Fatalf("main: failure to init JSONFileShortURLRepository: %v", err)
 		}
