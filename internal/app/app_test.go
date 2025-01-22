@@ -31,8 +31,18 @@ func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
 	apiController := controller.NewAPIController("", createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
+	// TODO mock internalController
+	internalController := controller.NewInternalController(nil)
 
-	app := NewURLShortenerApp("", false, appController, apiController, healthController)
+	app := NewURLShortenerApp(
+		"",
+		false,
+		nil,
+		appController,
+		apiController,
+		healthController,
+		internalController,
+	)
 	app.RegisterHandlers()
 
 	ts := httptest.NewServer(app.router)
@@ -79,8 +89,18 @@ func TestURLShortenerApp_getURLHandler(t *testing.T) {
 	apiController := controller.NewAPIController("", createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
+	// TODO mock internalController
+	internalController := controller.NewInternalController(nil)
 
-	app := NewURLShortenerApp("", false, appController, apiController, healthController)
+	app := NewURLShortenerApp(
+		"",
+		false,
+		nil,
+		appController,
+		apiController,
+		healthController,
+		internalController,
+	)
 	app.RegisterHandlers()
 
 	// добавляем подготовленные данные для тестов
@@ -142,8 +162,18 @@ func TestURLShortenerApp_createShortURLHandlerAPI(t *testing.T) {
 	apiController := controller.NewAPIController("", createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
+	// TODO mock internalController
+	internalController := controller.NewInternalController(nil)
 
-	app := NewURLShortenerApp("", false, appController, apiController, healthController)
+	app := NewURLShortenerApp(
+		"",
+		false,
+		nil,
+		appController,
+		apiController,
+		healthController,
+		internalController,
+	)
 	app.RegisterHandlers()
 
 	ts := httptest.NewServer(app.router)
@@ -235,8 +265,18 @@ func TestURLShortenerApp_createShortURLBatchHandlerAPI(t *testing.T) {
 	apiController := controller.NewAPIController("", createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
+	// TODO mock internalController
+	internalController := controller.NewInternalController(nil)
 
-	app := NewURLShortenerApp("", false, appController, apiController, healthController)
+	app := NewURLShortenerApp(
+		"",
+		false,
+		nil,
+		appController,
+		apiController,
+		healthController,
+		internalController,
+	)
 	app.RegisterHandlers()
 
 	ts := httptest.NewServer(app.router)

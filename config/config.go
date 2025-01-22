@@ -23,6 +23,7 @@ var (
 	fileStoragePath string
 	databaseDSN     string
 	enableHTTPS     bool
+	trustedSubnet   string
 	configFile      string
 )
 
@@ -32,6 +33,7 @@ type Config struct {
 	BaseURL         string `json:"base_url"`
 	FileStoragePath string `json:"file_storage_path"`
 	DatabaseDSN     string `json:"database_dsn"`
+	TrustedSubnet   string `json:"trusted_subnet"`
 	EnableHTTPS     bool   `json:"enable_https"`
 }
 
@@ -63,6 +65,7 @@ func parseFlags() {
 	flag.StringVar(&fileStoragePath, "f", "", "Short URL JSON storage")
 	flag.StringVar(&databaseDSN, "d", "", "Database DSN")
 	flag.BoolVar(&enableHTTPS, "s", false, "Enable HTTPS")
+	flag.StringVar(&trustedSubnet, "t", "", "Trusted Subnet")
 	flag.StringVar(&configFile, "c", "", "Configuration file")
 	flag.StringVar(&configFile, "config", "", "Configuration file")
 
@@ -131,5 +134,9 @@ func overrideConfigByEnv(config *Config) {
 		if err != nil {
 			log.Fatalf("config: error parsing ENABLE_HTTPS env variable: %v", err)
 		}
+	}
+
+	if trustedSubnetEnv, ok := os.LookupEnv("TRUSTED_SUBNET"); ok {
+		config.TrustedSubnet = trustedSubnetEnv
 	}
 }

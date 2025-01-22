@@ -177,6 +177,16 @@ func (suite *InMemoryRepositoryTestSuite) TestDeleteShortURLsByShortURIs_not_exp
 	suite.Equal(false, suite.testShortURLFirst.Deleted, "testShortURLFirst must be deleted")
 }
 
+func (suite *InMemoryRepositoryTestSuite) TestGetStats() {
+	urlCount, userCount, err := suite.repository.GetStats(context.Background())
+	if err != nil {
+		suite.Fail("unexpected error when get stats: %v", err)
+	}
+
+	suite.Equal(2, urlCount, "urlCount should be 2")
+	suite.Equal(2, userCount, "userCount should be 2")
+}
+
 func TestInMemoryRepositoryTestSuite(t *testing.T) {
 	suite.Run(t, new(InMemoryRepositoryTestSuite))
 }

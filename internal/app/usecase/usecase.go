@@ -182,3 +182,33 @@ func (uc *DeleteShortURLUseCase) DeleteShortURLsByShortURIs(ctx context.Context,
 
 	return nil
 }
+
+// IStatsUseCase интерфейс описывающий сценарий получения статистики
+type IStatsUseCase interface {
+	GetStats(ctx context.Context) (urlCount int, userCount int, err error)
+}
+
+// StatsUseCase структура реализующая интерфейс IStatsUseCase
+type StatsUseCase struct {
+	repo repository.IShortURLRepository
+}
+
+// NewStatsUseCase создает экземпляр StatsUseCase
+func NewStatsUseCase(repo repository.IShortURLRepository) *StatsUseCase {
+	return &StatsUseCase{repo: repo}
+}
+
+// GetStats возвращает статистику по сервису
+// urlCount - количество коротких ссылок в сервисе
+// userCount - количество пользователей в сервисе
+func (uc *StatsUseCase) GetStats(ctx context.Context) (urlCount int, userCount int, err error) {
+	log.Infow("use_case: get stats")
+
+	urlCount, userCount, err = uc.repo.GetStats(ctx)
+	if err != nil {
+		log.Errorw("use_case: failed to get stats", "error", err)
+		return 0, 0, ErrUnexpected
+	}
+
+	return urlCount, userCount, nil
+}

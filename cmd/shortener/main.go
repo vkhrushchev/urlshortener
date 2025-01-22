@@ -5,6 +5,7 @@ import (
 	"github.com/vkhrushchev/urlshortener/config"
 	"github.com/vkhrushchev/urlshortener/internal/app/repository"
 	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
+	"net"
 
 	"github.com/vkhrushchev/urlshortener/internal/app"
 	"github.com/vkhrushchev/urlshortener/internal/app/controller"
@@ -29,6 +30,10 @@ func main() {
 	log.Infof("Build commit: %s\n", buildCommit)
 
 	shortenerConfig := config.ReadConfig()
+	_, trustedSubnet, err := net.ParseCIDR(shortenerConfig.TrustedSubnet)
+	if err != nil {
+		log.Warnf("main: failed to parse trusted subnet: %v", err)
+	}
 
 	dbLookup, err := db.NewDBLookup(shortenerConfig.DatabaseDSN)
 	if err != nil {
@@ -40,14 +45,24 @@ func main() {
 	createShortURLUseCase := usecase.NewCreateShortURLUseCase(shortURLRepo)
 	getShortURLUseCase := usecase.NewGetShortURLUseCase(shortURLRepo)
 	deleteShortURLUseCase := usecase.NewDeleteShortURLUseCase(shortURLRepo)
+	statsUseCase := usecase.NewStatsUseCase(shortURLRepo)
 
 	appController := controller.NewAppController(shortenerConfig.BaseURL, createShortURLUseCase, getShortURLUseCase)
 	apiController := controller.NewAPIController(
 		shortenerConfig.BaseURL, createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
 	healthController := controller.NewHealthController(dbLookup)
+	internalController := controller.NewInternalController(statsUseCase)
 
 	shortenerApp := app.NewURLShortenerApp(
-		shortenerConfig.RunAddr, shortenerConfig.EnableHTTPS, appController, apiController, healthController)
+		shortenerConfig.RunAddr,
+		shortenerConfig.EnableHTTPS,
+		trustedSubnet,
+		appController,
+		apiController,
+		healthController,
+		internalController,
+	)
+
 	shortenerApp.RegisterHandlers()
 	shortenerApp.Run()
 }

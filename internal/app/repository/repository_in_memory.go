@@ -86,3 +86,10 @@ func (r *InMemoryShortURLRepository) DeleteShortURLsByShortURIs(ctx context.Cont
 
 	return nil
 }
+
+// GetStats возвращает статистику по сервису
+// urlCount - количество коротких ссылок в сервисе
+// userCount - количество пользователей в сервисе
+func (r *InMemoryShortURLRepository) GetStats(ctx context.Context) (urlCount int, userCount int, err error) {
+	return len(r.storageByUserID), len(r.storage), nil
+}
