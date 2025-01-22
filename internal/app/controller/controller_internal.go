@@ -26,7 +26,7 @@ func (c *InternalController) GetStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	apiResponse := dto.APIInternalGetStatsResponse{
-		UrlCount:  urlCount,
+		URLCount:  urlCount,
 		UserCount: userCount,
 	}
 

@@ -41,6 +41,6 @@ type APIGetAllURLByUserIDResponseEntry struct {
 
 // APIInternalGetStatsResponse ответ на запрос статистики
 type APIInternalGetStatsResponse struct {
-	UrlCount  int `json:"urls"`
+	URLCount  int `json:"urls"`
 	UserCount int `json:"users"`
 }
