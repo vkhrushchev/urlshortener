@@ -17,6 +17,14 @@ func NewInternalController(statsUseCase usecase.IStatsUseCase) *InternalControll
 	return &InternalController{statsUseCase: statsUseCase}
 }
 
+// GetStats возвращает статистику по сервису
+//
+//	@Summary	статистика по сервису
+//	@Accepts	plain
+//	@Produce	json
+//	@Success	200
+//	@Failure	500	{string}	string	"внутренняя ошибка сервиса"
+//	@Router		/api/internal/stats [get]
 func (c *InternalController) GetStats(w http.ResponseWriter, r *http.Request) {
 	urlCount, userCount, err := c.statsUseCase.GetStats(r.Context())
 	if err != nil {
