@@ -336,3 +336,53 @@ func BenchmarkCreateShortURLUseCase_CreateShortURL(b *testing.B) {
 		}
 	}
 }
+
+type StatsUseCaseTestSuite struct {
+	suite.Suite
+	repositoryMock *mock_repository.MockIShortURLRepository
+	useCase        IStatsUseCase
+}
+
+func (suite *StatsUseCaseTestSuite) SetupTest() {
+	mockCtrl := gomock.NewController(suite.T())
+	suite.repositoryMock = mock_repository.NewMockIShortURLRepository(mockCtrl)
+
+	suite.useCase = NewStatsUseCase(suite.repositoryMock)
+}
+
+func (suite *StatsUseCaseTestSuite) TestGetStats_success() {
+	suite.repositoryMock.EXPECT().
+		GetStats(gomock.Any()).
+		Return(5, 2, nil)
+
+	testUserID := uuid.NewString()
+	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
+	urlCount, userCount, err := suite.useCase.GetStats(testCtx)
+	if err != nil {
+		suite.Errorf(err, "use_case: error when get stats")
+	}
+
+	suite.Equal(5, urlCount, "urlCount must be equal 5")
+	suite.Equal(2, userCount, "userCount should be equal 2")
+}
+
+func (suite *StatsUseCaseTestSuite) TestGetStats_unexpected_error() {
+	suite.repositoryMock.EXPECT().
+		GetStats(gomock.Any()).
+		Return(0, 0, repository.ErrUnexpected)
+
+	testUserID := uuid.NewString()
+	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
+	urlCount, userCount, err := suite.useCase.GetStats(testCtx)
+	if err != nil && !errors.Is(err, repository.ErrUnexpected) {
+		suite.Errorf(err, "use_case: unexpected error when get stats")
+	}
+
+	suite.Equal(0, urlCount, "urlCount must be equal 0")
+	suite.Equal(0, userCount, "userCount should be equal 0")
+	suite.True(errors.Is(err, ErrUnexpected), "err should be ErrUnexpected")
+}
+
+func TestStatsUseCaseTestSuite(t *testing.T) {
+	suite.Run(t, new(StatsUseCaseTestSuite))
+}

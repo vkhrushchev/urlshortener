@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"golang.org/x/crypto/acme/autocert"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -21,29 +22,35 @@ var log = zap.Must(zap.NewDevelopment()).Sugar()
 
 // URLShortenerApp - структура с описанием приложения Shortener
 type URLShortenerApp struct {
-	appController    *controller.AppController
-	apiController    *controller.APIController
-	healthController *controller.HealthController
-	router           chi.Router
-	runAddr          string
-	enableHTTPS      bool
+	appController      *controller.AppController
+	apiController      *controller.APIController
+	healthController   *controller.HealthController
+	internalController *controller.InternalController
+	router             chi.Router
+	runAddr            string
+	enableHTTPS        bool
+	trustedSubnet      *net.IPNet
 }
 
 // NewURLShortenerApp создает экземпляр структуры URLShortenerApp
 func NewURLShortenerApp(
 	runAddr string,
 	enableHTTPS bool,
+	trustedSubnet *net.IPNet,
 	appController *controller.AppController,
 	apiController *controller.APIController,
 	healthController *controller.HealthController,
+	internalController *controller.InternalController,
 ) *URLShortenerApp {
 	return &URLShortenerApp{
-		appController:    appController,
-		apiController:    apiController,
-		healthController: healthController,
-		router:           chi.NewRouter(),
-		runAddr:          runAddr,
-		enableHTTPS:      enableHTTPS,
+		appController:      appController,
+		apiController:      apiController,
+		healthController:   healthController,
+		internalController: internalController,
+		router:             chi.NewRouter(),
+		runAddr:            runAddr,
+		enableHTTPS:        enableHTTPS,
+		trustedSubnet:      trustedSubnet,
 	}
 }
 
@@ -80,6 +87,11 @@ func (a *URLShortenerApp) RegisterHandlers() {
 	a.router.Get(
 		"/ping",
 		a.healthController.Ping)
+	a.router.Get(
+		"/api/internal/stats",
+		middleware.CheckSubnetMiddleware(
+			a.trustedSubnet,
+			a.internalController.GetStats))
 }
 
 // Run запускает http-сервер с приложением

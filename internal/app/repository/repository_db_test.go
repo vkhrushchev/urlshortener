@@ -156,6 +156,16 @@ func (s *DBShortURLRepositoryTestSuite) TestFull() {
 	}
 }
 
+func (s *DBShortURLRepositoryTestSuite) TestGetStats() {
+	urlCount, userCount, err := s.repository.GetStats(context.Background())
+	if err != nil {
+		s.Fail("unexpected error when get stats", "error: %v", err)
+	}
+
+	s.Equal(1, urlCount, "urlCount should be 1")
+	s.Equal(1, userCount, "userCount should be 1")
+}
+
 func TestDBShortURLRepositoryTestSuite(t *testing.T) {
 	suite.Run(t, new(DBShortURLRepositoryTestSuite))
 }

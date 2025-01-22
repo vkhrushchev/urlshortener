@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -282,6 +283,20 @@ func AuthByUserIDCookieMiddleware(next func(w http.ResponseWriter, r *http.Reque
 		}
 
 		r = r.WithContext(context.WithValue(r.Context(), UserIDContextKey, userIDCookie.Value))
+		next(w, r)
+	}
+}
+
+// CheckSubnetMiddleware возвращает middleware для проверки подсети из которой делается запрос
+func CheckSubnetMiddleware(trustedSubnet *net.IPNet, next func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		realIP := r.Header.Get("X-Real-IP")
+
+		if trustedSubnet == nil || !trustedSubnet.Contains(net.ParseIP(realIP)) {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+
 		next(w, r)
 	}
 }
