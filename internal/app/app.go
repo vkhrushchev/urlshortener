@@ -154,7 +154,7 @@ func (a *URLShortenerApp) RunHTTPServer(gracefulShutdownCh chan struct{}) {
 
 // RunGRPCServer запускает grpc-сервер с приложением
 func (a *URLShortenerApp) RunGRPCServer(gracefulShutdownCh chan struct{}) {
-	listenTcpPort, err := net.Listen("tcp", "localhost:18080")
+	listenTcpPort, err := net.Listen("tcp", a.grpcAddr)
 	if err != nil {
 		log.Fatalw("app: failed to acquire TCP port for gRPC service", "error", err)
 	}

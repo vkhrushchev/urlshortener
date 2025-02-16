@@ -67,6 +67,8 @@ func main() {
 		shortenerConfig.RunAddr,
 		shortenerConfig.EnableHTTPS,
 		trustedSubnet,
+		shortenerConfig.GRPCAddr,
+		shortenerConfig.Salt,
 		appController,
 		apiController,
 		healthController,
