@@ -3,12 +3,12 @@ package usecase
 import (
 	"context"
 	"errors"
+	"github.com/vkhrushchev/urlshortener/internal/common"
 
 	"github.com/google/uuid"
 	"github.com/vkhrushchev/urlshortener/internal/app/domain"
 	"github.com/vkhrushchev/urlshortener/internal/app/entity"
 	"github.com/vkhrushchev/urlshortener/internal/app/repository"
-	"github.com/vkhrushchev/urlshortener/internal/middleware"
 	"github.com/vkhrushchev/urlshortener/internal/util"
 	"go.uber.org/zap"
 )
@@ -42,7 +42,7 @@ func NewCreateShortURLUseCase(repo repository.IShortURLRepository) *CreateShortU
 
 // CreateShortURL создает короткую ссылку
 func (uc *CreateShortURLUseCase) CreateShortURL(ctx context.Context, url string) (domain.ShortURLDomain, error) {
-	userID := ctx.Value(middleware.UserIDContextKey).(string)
+	userID := ctx.Value(common.UserIDContextKey).(string)
 	log.Infow("use_case: CreateShortURL", "url", url, "userID", userID)
 
 	shortURLEntity := &entity.ShortURLEntity{
@@ -67,7 +67,7 @@ func (uc *CreateShortURLUseCase) CreateShortURL(ctx context.Context, url string)
 
 // CreateShortURLBatch создает короткие ссылки пачкой
 func (uc *CreateShortURLUseCase) CreateShortURLBatch(ctx context.Context, createShortURLBatchDomains []domain.CreateShortURLBatchDomain) ([]domain.CreateShortURLBatchResultDomain, error) {
-	userID := ctx.Value(middleware.UserIDContextKey).(string)
+	userID := ctx.Value(common.UserIDContextKey).(string)
 	log.Infow("use_case: create short URL batch", "userID", userID)
 
 	shortURLEntities := make([]entity.ShortURLEntity, 0, len(createShortURLBatchDomains))
@@ -171,7 +171,7 @@ func NewDeleteShortURLUseCase(repo repository.IShortURLRepository) *DeleteShortU
 
 // DeleteShortURLsByShortURIs удаляет короткие ссылки по списку shortURIs
 func (uc *DeleteShortURLUseCase) DeleteShortURLsByShortURIs(ctx context.Context, shortURIs []string) error {
-	userID := ctx.Value(middleware.UserIDContextKey).(string)
+	userID := ctx.Value(common.UserIDContextKey).(string)
 	log.Infow("use_case: delete short URLs by shortURIs", "shortURIs", shortURIs, "userID", userID)
 
 	err := uc.repo.DeleteShortURLsByShortURIs(ctx, shortURIs)

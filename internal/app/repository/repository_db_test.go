@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"github.com/vkhrushchev/urlshortener/internal/common"
 	"testing"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 	"github.com/vkhrushchev/urlshortener/internal/app/db"
 	"github.com/vkhrushchev/urlshortener/internal/app/entity"
-	"github.com/vkhrushchev/urlshortener/internal/middleware"
 	"github.com/vkhrushchev/urlshortener/internal/util"
 )
 
@@ -63,7 +63,7 @@ func (s *DBShortURLRepositoryTestSuite) TearDownSuite() {
 
 func (s *DBShortURLRepositoryTestSuite) TestGetShortURLByShortURI_not_found() {
 	testUserID := uuid.NewString()
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, testUserID)
 
 	_, err := s.repository.GetShortURLByShortURI(testCtx, "not_existed_shortURL")
 	s.ErrorIs(err, ErrNotFound, "expected ErrNotFound, got %v", err)
@@ -71,7 +71,7 @@ func (s *DBShortURLRepositoryTestSuite) TestGetShortURLByShortURI_not_found() {
 
 func (s *DBShortURLRepositoryTestSuite) TestSaveShortURL_conflict() {
 	testUserID := uuid.NewString()
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, testUserID)
 	testShortURL := &entity.ShortURLEntity{
 		UUID:     uuid.NewString(),
 		ShortURI: util.RandStringRunes(10),
@@ -92,7 +92,7 @@ func (s *DBShortURLRepositoryTestSuite) TestSaveShortURL_conflict() {
 
 func (s *DBShortURLRepositoryTestSuite) TestSaveShortURLs_success() {
 	testUserID := uuid.NewString()
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, testUserID)
 	testShortURLFirst := entity.ShortURLEntity{
 		UUID:     uuid.NewString(),
 		ShortURI: util.RandStringRunes(10),
@@ -122,7 +122,7 @@ func (s *DBShortURLRepositoryTestSuite) TestSaveShortURLs_success() {
 
 func (s *DBShortURLRepositoryTestSuite) TestFull() {
 	testUserID := uuid.NewString()
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, testUserID)
 	testShortURL := &entity.ShortURLEntity{
 		UUID:     uuid.NewString(),
 		ShortURI: util.RandStringRunes(10),

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/vkhrushchev/urlshortener/config"
+	"github.com/vkhrushchev/urlshortener/internal/app/grpc"
 	"github.com/vkhrushchev/urlshortener/internal/app/repository"
 	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
 	"net"
@@ -53,6 +54,15 @@ func main() {
 	healthController := controller.NewHealthController(dbLookup)
 	internalController := controller.NewInternalController(statsUseCase)
 
+	grpcShortenerServiceServer := grpc.NewShortenerServiceServer(
+		createShortURLUseCase,
+		getShortURLUseCase,
+		deleteShortURLUseCase,
+		statsUseCase,
+		dbLookup,
+		shortenerConfig.BaseURL,
+	)
+
 	shortenerApp := app.NewURLShortenerApp(
 		shortenerConfig.RunAddr,
 		shortenerConfig.EnableHTTPS,
@@ -61,10 +71,20 @@ func main() {
 		apiController,
 		healthController,
 		internalController,
+		grpcShortenerServiceServer,
 	)
 
-	shortenerApp.RegisterHandlers()
-	shortenerApp.Run()
+	shortenerApp.RegisterHTTPHandlers()
+
+	gracefulHTTPShutdownChan := make(chan struct{})
+	gracefulGRPCShutdownChan := make(chan struct{})
+	go shortenerApp.RunHTTPServer(gracefulHTTPShutdownChan)
+	go shortenerApp.RunGRPCServer(gracefulGRPCShutdownChan)
+
+	<-gracefulHTTPShutdownChan
+	log.Infow("main: URLShortenerApp HTTP shutting down")
+	<-gracefulGRPCShutdownChan
+	log.Infow("main: URLShortenerApp GRPC shutting down")
 }
 
 func initShortURLRepository(dbLookup *db.DBLookup, config config.Config) repository.IShortURLRepository {

@@ -6,6 +6,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"errors"
+	"github.com/vkhrushchev/urlshortener/internal/common"
 	"io"
 	"net"
 	"net/http"
@@ -175,17 +176,8 @@ func GzipMiddleware(next func(w http.ResponseWriter, r *http.Request)) func(w ht
 	}
 }
 
-// ShortenerContextKey тип для ключей контекста приложения Shortener
-type ShortenerContextKey string
-
-// UserIDContextKey - ключ для хранения идентификатора пользователя
-const (
-	UserIDContextKey ShortenerContextKey = "userID"
-)
-const userIDSignatureSalt = "mega_puper_salt"
-
 // UserIDCookieMiddleware возвращает middleware для обработки кук "userID" и "userIDSignature"
-func UserIDCookieMiddleware(next func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
+func UserIDCookieMiddleware(salt string, next func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var userIDCookie *http.Cookie
 		var userIDSignatureCookie *http.Cookie
@@ -211,14 +203,14 @@ func UserIDCookieMiddleware(next func(w http.ResponseWriter, r *http.Request)) f
 		if userIDCookie != nil {
 			userID = userIDCookie.Value
 			userIDSignature = userIDSignatureCookie.Value
-			isValidCookie = validateUserIDCookie(userID, userIDSignature)
+			isValidCookie = common.CheckSignature(userID, userIDSignature, salt)
 		}
 
 		if userIDCookie == nil || !isValidCookie {
 			log.Infow("middleware: 'userID' cookies not found or not valid")
 
 			userID = uuid.NewString()
-			userIDSignatureBytes := md5.Sum([]byte(userID + userIDSignatureSalt))
+			userIDSignatureBytes := md5.Sum([]byte(userID + salt))
 			userIDSignature = hex.EncodeToString(userIDSignatureBytes[:])
 
 			userIDCookie = &http.Cookie{
@@ -239,20 +231,13 @@ func UserIDCookieMiddleware(next func(w http.ResponseWriter, r *http.Request)) f
 			http.SetCookie(w, userIDSignatureCookie)
 		}
 
-		r = r.WithContext(context.WithValue(r.Context(), UserIDContextKey, userID))
+		r = r.WithContext(context.WithValue(r.Context(), common.UserIDContextKey, userID))
 		next(w, r)
 	}
 }
 
-func validateUserIDCookie(userID string, userIDSignature string) bool {
-	userIDSignatureByUserIDCookieBytes := md5.Sum([]byte(userID + userIDSignatureSalt))
-	userIDSignatureByUserIDCookie := hex.EncodeToString(userIDSignatureByUserIDCookieBytes[:])
-
-	return userIDSignatureByUserIDCookie == userIDSignature
-}
-
 // AuthByUserIDCookieMiddleware возвращает middleware для авторизации по кукам "userID" и "userIDSignature"
-func AuthByUserIDCookieMiddleware(next func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
+func AuthByUserIDCookieMiddleware(salt string, next func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var userIDCookie *http.Cookie
 		var userIDSignatureCookie *http.Cookie
@@ -274,7 +259,7 @@ func AuthByUserIDCookieMiddleware(next func(w http.ResponseWriter, r *http.Reque
 
 		var isValidCookie bool
 		if userIDCookie != nil {
-			isValidCookie = validateUserIDCookie(userIDCookie.Value, userIDSignatureCookie.Value)
+			isValidCookie = common.CheckSignature(userIDCookie.Value, userIDSignatureCookie.Value, salt)
 		}
 
 		if !isValidCookie {
@@ -282,7 +267,7 @@ func AuthByUserIDCookieMiddleware(next func(w http.ResponseWriter, r *http.Reque
 			return
 		}
 
-		r = r.WithContext(context.WithValue(r.Context(), UserIDContextKey, userIDCookie.Value))
+		r = r.WithContext(context.WithValue(r.Context(), common.UserIDContextKey, userIDCookie.Value))
 		next(w, r)
 	}
 }

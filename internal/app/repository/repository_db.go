@@ -4,13 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/vkhrushchev/urlshortener/internal/common"
 	"sync"
 
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vkhrushchev/urlshortener/internal/app/db"
 	"github.com/vkhrushchev/urlshortener/internal/app/entity"
-	"github.com/vkhrushchev/urlshortener/internal/middleware"
 )
 
 const (
@@ -212,7 +212,7 @@ func (r *DBShortURLRepository) DeleteShortURLsByShortURIs(ctx context.Context, s
 		log.Errorw("repository: unexpected error", "err", err)
 		return ErrUnexpected
 	}
-	userID := ctx.Value(middleware.UserIDContextKey).(string)
+	userID := ctx.Value(common.UserIDContextKey).(string)
 	deleteByShortURIsTaskResultChannels := deleteByShortURIsTaskFanOut(ctx, stmt, &userID, shortURIsCh)
 	deleteByShortURIsTaskFanIn(tx, deleteByShortURIsTaskResultChannels)
 

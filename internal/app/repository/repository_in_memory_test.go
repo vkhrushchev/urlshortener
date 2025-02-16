@@ -3,12 +3,12 @@ package repository
 import (
 	"context"
 	"errors"
+	"github.com/vkhrushchev/urlshortener/internal/common"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
 	"github.com/vkhrushchev/urlshortener/internal/app/entity"
-	"github.com/vkhrushchev/urlshortener/internal/middleware"
 	"github.com/vkhrushchev/urlshortener/internal/util"
 )
 
@@ -76,7 +76,7 @@ func (suite *InMemoryRepositoryTestSuite) TestSaveShortURL_success() {
 		Deleted:  false,
 	}
 
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, testUserID)
 	savedShortURL, err := suite.repository.SaveShortURL(testCtx, testShortURL)
 	if err != nil {
 		suite.Error(err, "unexpected error when save ShortURLEntity")
@@ -97,7 +97,7 @@ func (suite *InMemoryRepositoryTestSuite) TestSaveShortURL_existed_user() {
 		Deleted:  false,
 	}
 
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, suite.testUserIDFirst)
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, suite.testUserIDFirst)
 	savedShortURL, err := suite.repository.SaveShortURL(testCtx, testShortURL)
 	if err != nil {
 		suite.Error(err, "unexpected error when save ShortURLEntity")
@@ -127,7 +127,7 @@ func (suite *InMemoryRepositoryTestSuite) TestSaveShortURLs_success() {
 		},
 	}
 
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, suite.testUserIDFirst)
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, suite.testUserIDFirst)
 	savedShortURLEntities, err := suite.repository.SaveShortURLs(testCtx, testShortURLEntities)
 	if err != nil {
 		suite.Error(err, "unexpected error when save ShortURLEntities")
@@ -158,7 +158,7 @@ func (suite *InMemoryRepositoryTestSuite) TestGetShortURLsByUserID_not_existed_u
 }
 
 func (suite *InMemoryRepositoryTestSuite) TestDeleteShortURLsByShortURIs_success() {
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, suite.testUserIDFirst)
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, suite.testUserIDFirst)
 	err := suite.repository.DeleteShortURLsByShortURIs(testCtx, []string{suite.testShortURLFirst.ShortURI})
 	if err != nil {
 		suite.Error(err, "unexpected error when delete shortURLs by shortURIs")
@@ -168,7 +168,7 @@ func (suite *InMemoryRepositoryTestSuite) TestDeleteShortURLsByShortURIs_success
 }
 
 func (suite *InMemoryRepositoryTestSuite) TestDeleteShortURLsByShortURIs_not_expected_user() {
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, suite.testUserIDSecond)
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, suite.testUserIDSecond)
 	err := suite.repository.DeleteShortURLsByShortURIs(testCtx, []string{suite.testShortURLFirst.ShortURI})
 	if err != nil {
 		suite.Error(err, "unexpected error when delete shortURLs by shortURIs")

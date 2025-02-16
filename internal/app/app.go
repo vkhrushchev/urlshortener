@@ -3,7 +3,10 @@ package app
 import (
 	"context"
 	"errors"
+	shortenergrpc "github.com/vkhrushchev/urlshortener/internal/app/grpc"
+	"github.com/vkhrushchev/urlshortener/internal/interceptor"
 	"golang.org/x/crypto/acme/autocert"
+	"google.golang.org/grpc"
 	"net"
 	"net/http"
 	"os"
@@ -16,20 +19,25 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"go.uber.org/zap"
+
+	pb "github.com/vkhrushchev/urlshortener/grpc"
 )
 
 var log = zap.Must(zap.NewDevelopment()).Sugar()
 
 // URLShortenerApp - структура с описанием приложения Shortener
 type URLShortenerApp struct {
-	appController      *controller.AppController
-	apiController      *controller.APIController
-	healthController   *controller.HealthController
-	internalController *controller.InternalController
-	router             chi.Router
-	runAddr            string
-	enableHTTPS        bool
-	trustedSubnet      *net.IPNet
+	appController                  *controller.AppController
+	apiController                  *controller.APIController
+	healthController               *controller.HealthController
+	internalController             *controller.InternalController
+	grpcShortenerServiceServerImpl *shortenergrpc.ShortenerServiceServerImpl
+	router                         chi.Router
+	runAddr                        string
+	enableHTTPS                    bool
+	trustedSubnet                  *net.IPNet
+	grpcAddr                       string
+	salt                           string
 }
 
 // NewURLShortenerApp создает экземпляр структуры URLShortenerApp
@@ -37,29 +45,35 @@ func NewURLShortenerApp(
 	runAddr string,
 	enableHTTPS bool,
 	trustedSubnet *net.IPNet,
+	grpcAddr string,
+	salt string,
 	appController *controller.AppController,
 	apiController *controller.APIController,
 	healthController *controller.HealthController,
 	internalController *controller.InternalController,
-) *URLShortenerApp {
+	grpcServer *shortenergrpc.ShortenerServiceServerImpl) *URLShortenerApp {
 	return &URLShortenerApp{
-		appController:      appController,
-		apiController:      apiController,
-		healthController:   healthController,
-		internalController: internalController,
-		router:             chi.NewRouter(),
-		runAddr:            runAddr,
-		enableHTTPS:        enableHTTPS,
-		trustedSubnet:      trustedSubnet,
+		appController:                  appController,
+		apiController:                  apiController,
+		healthController:               healthController,
+		internalController:             internalController,
+		grpcShortenerServiceServerImpl: grpcServer,
+		router:                         chi.NewRouter(),
+		runAddr:                        runAddr,
+		enableHTTPS:                    enableHTTPS,
+		trustedSubnet:                  trustedSubnet,
+		grpcAddr:                       grpcAddr,
+		salt:                           salt,
 	}
 }
 
-// RegisterHandlers регистрирует обработчики http-запросов
-func (a *URLShortenerApp) RegisterHandlers() {
+// RegisterHTTPHandlers регистрирует обработчики http-запросов
+func (a *URLShortenerApp) RegisterHTTPHandlers() {
 	a.router.Post(
 		"/",
 		middleware.LogRequestMiddleware(
 			middleware.UserIDCookieMiddleware(
+				a.salt,
 				middleware.GzipMiddleware(a.appController.CreateShortURLHandler))))
 	a.router.Get(
 		"/{id}",
@@ -68,21 +82,25 @@ func (a *URLShortenerApp) RegisterHandlers() {
 		"/api/shorten",
 		middleware.LogRequestMiddleware(
 			middleware.UserIDCookieMiddleware(
+				a.salt,
 				middleware.GzipMiddleware(a.apiController.CreateShortURLHandler))))
 	a.router.Post(
 		"/api/shorten/batch",
 		middleware.LogRequestMiddleware(
 			middleware.UserIDCookieMiddleware(
+				a.salt,
 				middleware.GzipMiddleware(a.apiController.CreateShortURLBatchHandler))))
 	a.router.Get(
 		"/api/user/urls",
 		middleware.LogRequestMiddleware(
 			middleware.AuthByUserIDCookieMiddleware(
+				a.salt,
 				middleware.GzipMiddleware(a.apiController.GetShortURLByUserID))))
 	a.router.Delete(
 		"/api/user/urls",
 		middleware.LogRequestMiddleware(
 			middleware.AuthByUserIDCookieMiddleware(
+				a.salt,
 				middleware.GzipMiddleware(a.apiController.DeleteShortURLs))))
 	a.router.Get(
 		"/ping",
@@ -94,8 +112,8 @@ func (a *URLShortenerApp) RegisterHandlers() {
 			a.internalController.GetStats))
 }
 
-// Run запускает http-сервер с приложением
-func (a *URLShortenerApp) Run() {
+// RunHTTPServer запускает http-сервер с приложением
+func (a *URLShortenerApp) RunHTTPServer(gracefulShutdownCh chan struct{}) {
 	log.Infow("app: URLShortenerApp stated", "runAddr", a.runAddr)
 
 	server := &http.Server{
@@ -103,7 +121,6 @@ func (a *URLShortenerApp) Run() {
 		Handler: a.router,
 	}
 
-	gracefulShutdownChan := make(chan struct{})
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	go func() {
@@ -113,7 +130,7 @@ func (a *URLShortenerApp) Run() {
 			log.Errorw("app: failed to shutdown server", "error", err)
 		}
 
-		close(gracefulShutdownChan)
+		close(gracefulShutdownCh)
 	}()
 
 	if a.enableHTTPS {
@@ -133,7 +150,53 @@ func (a *URLShortenerApp) Run() {
 			log.Fatalf("app: failed to listen and serve http server: %v", err)
 		}
 	}
+}
 
-	<-gracefulShutdownChan
-	log.Infow("app: URLShortenerApp shutting down")
+// RunGRPCServer запускает grpc-сервер с приложением
+func (a *URLShortenerApp) RunGRPCServer(gracefulShutdownCh chan struct{}) {
+	listenTcpPort, err := net.Listen("tcp", "localhost:18080")
+	if err != nil {
+		log.Fatalw("app: failed to acquire TCP port for gRPC service", "error", err)
+	}
+
+	grpcServer := grpc.NewServer(grpc.ChainUnaryInterceptor(
+		interceptor.CheckSubnetInterceptor(
+			a.trustedSubnet,
+			[]string{
+				"GetStats",
+			},
+		),
+		interceptor.UserIDInterceptor(
+			a.salt,
+			[]string{
+				"CreateShortURL",
+				"GetShortURL",
+				"CreateShortURLBatch",
+				"GetShortURLByUserID",
+				"DeleteShortURLsByShortURIs",
+			},
+		),
+		interceptor.AuthByUserIDInterceptor(
+			a.salt,
+			[]string{
+				"GetShortURLByUserID",
+				"DeleteShortURLsByShortURIs",
+			},
+		),
+	))
+	pb.RegisterShortenerServiceServer(grpcServer, a.grpcShortenerServiceServerImpl)
+
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	go func() {
+		<-signalChan
+
+		grpcServer.GracefulStop()
+
+		close(gracefulShutdownCh)
+	}()
+
+	if err := grpcServer.Serve(listenTcpPort); err != nil {
+		log.Fatalw("app: failed to serve grpc server", "error", err)
+	}
 }
