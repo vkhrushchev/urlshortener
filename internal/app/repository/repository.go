@@ -26,4 +26,5 @@ type IShortURLRepository interface {
 	SaveShortURLs(ctx context.Context, shortURLEntities []entity.ShortURLEntity) ([]entity.ShortURLEntity, error)
 	GetShortURLsByUserID(ctx context.Context, userID string) ([]entity.ShortURLEntity, error)
 	DeleteShortURLsByShortURIs(ctx context.Context, shortURIs []string) error
+	GetStats(ctx context.Context) (urlCount int, userCount int, err error)
 }

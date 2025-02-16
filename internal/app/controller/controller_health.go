@@ -29,8 +29,8 @@ func NewHealthController(dbLookup *db.DBLookup) *HealthController {
 //	@Failure	500	{string}	string	"внутренняя ошибка сервиса"
 //	@Router		/ping [get]
 func (c *HealthController) Ping(w http.ResponseWriter, r *http.Request) {
-	isDBConntectionAlive := c.dbLookup.Ping(r.Context())
-	if !isDBConntectionAlive {
+	isDBConnectionAlive := c.dbLookup.Ping(r.Context())
+	if !isDBConnectionAlive {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

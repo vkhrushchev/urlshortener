@@ -2,9 +2,9 @@ package repository
 
 import (
 	"context"
+	"github.com/vkhrushchev/urlshortener/internal/common"
 
 	"github.com/vkhrushchev/urlshortener/internal/app/entity"
-	"github.com/vkhrushchev/urlshortener/internal/middleware"
 )
 
 // InMemoryShortURLRepository реализует интерфейс IShortURLRepository для хранения коротких ссылок в памяти
@@ -35,7 +35,7 @@ func (r *InMemoryShortURLRepository) GetShortURLByShortURI(ctx context.Context, 
 func (r *InMemoryShortURLRepository) SaveShortURL(ctx context.Context, shortURLEntity *entity.ShortURLEntity) (*entity.ShortURLEntity, error) {
 	r.storage[shortURLEntity.ShortURI] = shortURLEntity
 
-	userID := ctx.Value(middleware.UserIDContextKey).(string)
+	userID := ctx.Value(common.UserIDContextKey).(string)
 	shortURLEntitiesByUserID := r.storageByUserID[userID]
 	if shortURLEntitiesByUserID == nil {
 		shortURLEntitiesByUserID = make([]*entity.ShortURLEntity, 0)
@@ -76,7 +76,7 @@ func (r *InMemoryShortURLRepository) GetShortURLsByUserID(ctx context.Context, u
 
 // DeleteShortURLsByShortURIs удаляет короткие ссылки по списку shortURI
 func (r *InMemoryShortURLRepository) DeleteShortURLsByShortURIs(ctx context.Context, shortURIs []string) error {
-	userID := ctx.Value(middleware.UserIDContextKey).(string)
+	userID := ctx.Value(common.UserIDContextKey).(string)
 	for _, shortURI := range shortURIs {
 		shortURLEntry := r.storage[shortURI]
 		if shortURLEntry != nil && shortURLEntry.UserID == userID {
@@ -85,4 +85,11 @@ func (r *InMemoryShortURLRepository) DeleteShortURLsByShortURIs(ctx context.Cont
 	}
 
 	return nil
+}
+
+// GetStats возвращает статистику по сервису
+// urlCount - количество коротких ссылок в сервисе
+// userCount - количество пользователей в сервисе
+func (r *InMemoryShortURLRepository) GetStats(ctx context.Context) (urlCount int, userCount int, err error) {
+	return len(r.storageByUserID), len(r.storage), nil
 }

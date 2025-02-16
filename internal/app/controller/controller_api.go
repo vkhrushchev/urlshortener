@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"github.com/vkhrushchev/urlshortener/internal/app/domain"
 	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
+	"github.com/vkhrushchev/urlshortener/internal/common"
 	"net/http"
 
 	"github.com/vkhrushchev/urlshortener/internal/app/dto"
-	"github.com/vkhrushchev/urlshortener/internal/middleware"
 	"github.com/vkhrushchev/urlshortener/internal/util"
 )
 
@@ -174,7 +174,7 @@ func (c *APIController) CreateShortURLBatchHandler(w http.ResponseWriter, r *htt
 //	@Failure	500	{string}	string	"внутренняя ошибка сервиса"
 //	@Router		/api/user/urls [get]
 func (c *APIController) GetShortURLByUserID(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(middleware.UserIDContextKey).(string)
+	userID := r.Context().Value(common.UserIDContextKey).(string)
 	shortURLDomains, err := c.getShortURLUseCase.GetShortURLsByUserID(r.Context(), userID)
 	if err != nil {
 		log.Errorw("app: error when get shortURL by userID", "userID", userID, "err", err)

@@ -13,8 +13,10 @@ import (
 var log = zap.Must(zap.NewDevelopment()).Sugar()
 
 const (
-	runAddrDefault = "localhost:8080"
-	baseURLDefault = "http://localhost:8080"
+	runAddrDefault  = "localhost:8080"
+	baseURLDefault  = "http://localhost:8080"
+	grpcAddrDefault = "localhost:18080"
+	saltDefault     = "ACKaRDistERI"
 )
 
 var (
@@ -23,6 +25,9 @@ var (
 	fileStoragePath string
 	databaseDSN     string
 	enableHTTPS     bool
+	trustedSubnet   string
+	grpcAddr        string
+	salt            string
 	configFile      string
 )
 
@@ -32,7 +37,10 @@ type Config struct {
 	BaseURL         string `json:"base_url"`
 	FileStoragePath string `json:"file_storage_path"`
 	DatabaseDSN     string `json:"database_dsn"`
+	TrustedSubnet   string `json:"trusted_subnet"`
 	EnableHTTPS     bool   `json:"enable_https"`
+	GRPCAddr        string `json:"grpc_address"`
+	Salt            string `json:"salt"`
 }
 
 // ReadConfig - считывает конфигурацию из переменных окружения, параметров командной строки и конфигурационного файла
@@ -63,8 +71,11 @@ func parseFlags() {
 	flag.StringVar(&fileStoragePath, "f", "", "Short URL JSON storage")
 	flag.StringVar(&databaseDSN, "d", "", "Database DSN")
 	flag.BoolVar(&enableHTTPS, "s", false, "Enable HTTPS")
+	flag.StringVar(&trustedSubnet, "t", "", "Trusted Subnet")
 	flag.StringVar(&configFile, "c", "", "Configuration file")
 	flag.StringVar(&configFile, "config", "", "Configuration file")
+	flag.StringVar(&grpcAddr, "grpc-addr", grpcAddrDefault, "gRPC listen address")
+	flag.StringVar(&salt, "salt", saltDefault, "Salt used for authentication")
 
 	flag.Parse()
 }
@@ -106,6 +117,18 @@ func overrideConfigByFlags(config *Config) {
 	if databaseDSN != "" {
 		config.DatabaseDSN = databaseDSN
 	}
+
+	if grpcAddr != "" && grpcAddr != grpcAddrDefault {
+		config.GRPCAddr = grpcAddr
+	} else if config.GRPCAddr == "" {
+		config.GRPCAddr = grpcAddrDefault
+	}
+
+	if salt != "" && salt != saltDefault {
+		config.Salt = salt
+	} else if config.Salt == "" {
+		config.Salt = saltDefault
+	}
 }
 
 func overrideConfigByEnv(config *Config) {
@@ -131,5 +154,17 @@ func overrideConfigByEnv(config *Config) {
 		if err != nil {
 			log.Fatalf("config: error parsing ENABLE_HTTPS env variable: %v", err)
 		}
+	}
+
+	if trustedSubnetEnv, ok := os.LookupEnv("TRUSTED_SUBNET"); ok {
+		config.TrustedSubnet = trustedSubnetEnv
+	}
+
+	if grpcAddrEnv, ok := os.LookupEnv("GRPC_ADDR"); ok {
+		config.GRPCAddr = grpcAddrEnv
+	}
+
+	if saltEnv, ok := os.LookupEnv("SHORTENER_SALT"); ok {
+		config.Salt = saltEnv
 	}
 }

@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package grpc;
+
+option go_package = "grpc/";
+
+message CreateShortURLRequest {
+  string original_url = 1;
+}
+
+message CreateShortURLResponse {
+  string short_uri = 1;
+  string short_url = 2;
+}
+
+message GetShortURLRequest {
+  string short_uri = 1;
+}
+
+message GetShortURLResponse {
+  string short_uri = 1;
+  string short_url = 2;
+}
+
+message CreateShortURLBatchRequest {
+  message CreateShortURLBatchRequestEntry {
+    string correlation_id = 1;
+    string original_url = 2;
+  }
+
+  repeated CreateShortURLBatchRequestEntry entries = 1;
+}
+
+message CreateShortURLBatchResponse {
+  message CreateShortURLBatchResponseEntry {
+    string correlation_id = 1;
+    string short_url = 2;
+  }
+
+  repeated CreateShortURLBatchResponseEntry entries = 1;
+}
+
+message GetShortURLsByUserIDRequest {
+  string userID = 1;
+}
+
+message GetShortURLsByUserIDResponse {
+  message GetShortURLByUserIDResponseEntry {
+    string short_url = 1;
+    string original_url = 2;
+  }
+
+  repeated GetShortURLByUserIDResponseEntry entries = 1;
+}
+
+message DeleteShortURLsByShortURIsRequest {
+  repeated string shortURIs = 1;
+}
+
+message DeleteShortURLsByShortURIsResponse {
+  bool accepted = 1;
+}
+
+message PingRequest {
+
+}
+
+message PingResponse {
+  bool databaseActive = 1;
+}
+
+message GetStatsRequest {
+
+}
+
+message GetStatsResponse {
+  int64 url_count = 1;
+  int64 user_count = 2;
+}
+
+service ShortenerService {
+  rpc CreateShortURL(CreateShortURLRequest) returns (CreateShortURLResponse);
+  rpc GetShortURL(GetShortURLRequest) returns (GetShortURLResponse);
+  rpc CreateShortURLBatch(CreateShortURLBatchRequest) returns (CreateShortURLBatchResponse);
+  rpc GetShortURLByUserID(GetShortURLsByUserIDRequest) returns (GetShortURLsByUserIDResponse);
+  rpc DeleteShortURLsByShortURIs(DeleteShortURLsByShortURIsRequest) returns (DeleteShortURLsByShortURIsResponse);
+  rpc Ping(PingRequest) returns (PingResponse);
+  rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
+}

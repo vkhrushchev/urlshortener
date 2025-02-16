@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"github.com/vkhrushchev/urlshortener/config"
+	"github.com/vkhrushchev/urlshortener/internal/app/grpc"
 	"github.com/vkhrushchev/urlshortener/internal/app/repository"
 	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
+	"net"
 
 	"github.com/vkhrushchev/urlshortener/internal/app"
 	"github.com/vkhrushchev/urlshortener/internal/app/controller"
@@ -29,6 +31,10 @@ func main() {
 	log.Infof("Build commit: %s\n", buildCommit)
 
 	shortenerConfig := config.ReadConfig()
+	_, trustedSubnet, err := net.ParseCIDR(shortenerConfig.TrustedSubnet)
+	if err != nil {
+		log.Warnf("main: failed to parse trusted subnet: %v", err)
+	}
 
 	dbLookup, err := db.NewDBLookup(shortenerConfig.DatabaseDSN)
 	if err != nil {
@@ -40,16 +46,47 @@ func main() {
 	createShortURLUseCase := usecase.NewCreateShortURLUseCase(shortURLRepo)
 	getShortURLUseCase := usecase.NewGetShortURLUseCase(shortURLRepo)
 	deleteShortURLUseCase := usecase.NewDeleteShortURLUseCase(shortURLRepo)
+	statsUseCase := usecase.NewStatsUseCase(shortURLRepo)
 
 	appController := controller.NewAppController(shortenerConfig.BaseURL, createShortURLUseCase, getShortURLUseCase)
 	apiController := controller.NewAPIController(
 		shortenerConfig.BaseURL, createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
 	healthController := controller.NewHealthController(dbLookup)
+	internalController := controller.NewInternalController(statsUseCase)
+
+	grpcShortenerServiceServer := grpc.NewShortenerServiceServer(
+		createShortURLUseCase,
+		getShortURLUseCase,
+		deleteShortURLUseCase,
+		statsUseCase,
+		dbLookup,
+		shortenerConfig.BaseURL,
+	)
 
 	shortenerApp := app.NewURLShortenerApp(
-		shortenerConfig.RunAddr, shortenerConfig.EnableHTTPS, appController, apiController, healthController)
-	shortenerApp.RegisterHandlers()
-	shortenerApp.Run()
+		shortenerConfig.RunAddr,
+		shortenerConfig.EnableHTTPS,
+		trustedSubnet,
+		shortenerConfig.GRPCAddr,
+		shortenerConfig.Salt,
+		appController,
+		apiController,
+		healthController,
+		internalController,
+		grpcShortenerServiceServer,
+	)
+
+	shortenerApp.RegisterHTTPHandlers()
+
+	gracefulHTTPShutdownChan := make(chan struct{})
+	gracefulGRPCShutdownChan := make(chan struct{})
+	go shortenerApp.RunHTTPServer(gracefulHTTPShutdownChan)
+	go shortenerApp.RunGRPCServer(gracefulGRPCShutdownChan)
+
+	<-gracefulHTTPShutdownChan
+	log.Infow("main: URLShortenerApp HTTP shutting down")
+	<-gracefulGRPCShutdownChan
+	log.Infow("main: URLShortenerApp GRPC shutting down")
 }
 
 func initShortURLRepository(dbLookup *db.DBLookup, config config.Config) repository.IShortURLRepository {

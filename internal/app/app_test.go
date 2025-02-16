@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"github.com/vkhrushchev/urlshortener/internal/common"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -17,7 +18,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/vkhrushchev/urlshortener/internal/app/controller"
 	"github.com/vkhrushchev/urlshortener/internal/app/dto"
-	"github.com/vkhrushchev/urlshortener/internal/middleware"
 )
 
 func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
@@ -31,9 +31,11 @@ func TestURLShortenerApp_createShortURLHandler(t *testing.T) {
 	apiController := controller.NewAPIController("", createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
+	// TODO mock internalController
+	internalController := controller.NewInternalController(nil)
 
-	app := NewURLShortenerApp("", false, appController, apiController, healthController)
-	app.RegisterHandlers()
+	app := NewURLShortenerApp("", false, nil, "", "salt", appController, apiController, healthController, internalController, nil)
+	app.RegisterHTTPHandlers()
 
 	ts := httptest.NewServer(app.router)
 	defer ts.Close()
@@ -79,13 +81,15 @@ func TestURLShortenerApp_getURLHandler(t *testing.T) {
 	apiController := controller.NewAPIController("", createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
+	// TODO mock internalController
+	internalController := controller.NewInternalController(nil)
 
-	app := NewURLShortenerApp("", false, appController, apiController, healthController)
-	app.RegisterHandlers()
+	app := NewURLShortenerApp("", false, nil, "", "salt", appController, apiController, healthController, internalController, nil)
+	app.RegisterHTTPHandlers()
 
 	// добавляем подготовленные данные для тестов
 	shortURLEntry, err := createShortURLUseCase.CreateShortURL(
-		context.WithValue(context.Background(), middleware.UserIDContextKey, uuid.NewString()),
+		context.WithValue(context.Background(), common.UserIDContextKey, uuid.NewString()),
 		"https://google.com",
 	)
 	require.NoError(t, err, "unexpected error when save URL")
@@ -142,9 +146,11 @@ func TestURLShortenerApp_createShortURLHandlerAPI(t *testing.T) {
 	apiController := controller.NewAPIController("", createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
+	// TODO mock internalController
+	internalController := controller.NewInternalController(nil)
 
-	app := NewURLShortenerApp("", false, appController, apiController, healthController)
-	app.RegisterHandlers()
+	app := NewURLShortenerApp("", false, nil, "", "salt", appController, apiController, healthController, internalController, nil)
+	app.RegisterHTTPHandlers()
 
 	ts := httptest.NewServer(app.router)
 	defer ts.Close()
@@ -235,9 +241,11 @@ func TestURLShortenerApp_createShortURLBatchHandlerAPI(t *testing.T) {
 	apiController := controller.NewAPIController("", createShortURLUseCase, getShortURLUseCase, deleteShortURLUseCase)
 	// TODO mock healthController
 	healthController := controller.NewHealthController(nil)
+	// TODO mock internalController
+	internalController := controller.NewInternalController(nil)
 
-	app := NewURLShortenerApp("", false, appController, apiController, healthController)
-	app.RegisterHandlers()
+	app := NewURLShortenerApp("", false, nil, "", "salt", appController, apiController, healthController, internalController, nil)
+	app.RegisterHTTPHandlers()
 
 	ts := httptest.NewServer(app.router)
 	defer ts.Close()
