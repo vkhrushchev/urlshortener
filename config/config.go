@@ -19,18 +19,6 @@ const (
 	saltDefault     = "ACKaRDistERI"
 )
 
-var (
-	runAddr         string
-	baseURL         string
-	fileStoragePath string
-	databaseDSN     string
-	enableHTTPS     bool
-	trustedSubnet   string
-	grpcAddr        string
-	salt            string
-	configFile      string
-)
-
 // Config - структура с описанием конфигурации
 type Config struct {
 	RunAddr         string `json:"server_address"`
@@ -45,43 +33,48 @@ type Config struct {
 
 // ReadConfig - считывает конфигурацию из переменных окружения, параметров командной строки и конфигурационного файла
 func ReadConfig() Config {
-	parseFlags()
-	if configFile == "" {
-		configFile = os.Getenv("CONFIG")
+	var configFilePath string
+	var flagConfig Config
+	parseFlags(&flagConfig, &configFilePath)
+
+	if configFilePath == "" {
+		configFilePath = os.Getenv("CONFIG")
 	}
 
-	var jsonConfig Config
-	if configFile != "" {
-		parseJSONConfig(&jsonConfig)
+	log.Debugw("config: ", "flagConfig", flagConfig)
+
+	var config Config
+	if configFilePath != "" {
+		parseJSONConfig(&config, configFilePath)
 	}
 
-	log.Debugw("config: ", "config", jsonConfig)
+	log.Debugw("config: ", "config", config)
 
-	overrideConfigByFlags(&jsonConfig)
-	log.Debugw("overrideConfigByFlags: ", "config", jsonConfig)
-	overrideConfigByEnv(&jsonConfig)
-	log.Debugw("overrideConfigByEnv: ", "config", jsonConfig)
+	overrideConfigByFlags(&config, &flagConfig)
+	log.Debugw("overrideConfigByFlags: ", "config", config)
+	overrideConfigByEnv(&config)
+	log.Debugw("overrideConfigByEnv: ", "config", config)
 
-	return jsonConfig
+	return config
 }
 
-func parseFlags() {
-	flag.StringVar(&runAddr, "a", runAddrDefault, "HTTP listen address")
-	flag.StringVar(&baseURL, "b", baseURLDefault, "Base URL")
-	flag.StringVar(&fileStoragePath, "f", "", "Short URL JSON storage")
-	flag.StringVar(&databaseDSN, "d", "", "Database DSN")
-	flag.BoolVar(&enableHTTPS, "s", false, "Enable HTTPS")
-	flag.StringVar(&trustedSubnet, "t", "", "Trusted Subnet")
-	flag.StringVar(&configFile, "c", "", "Configuration file")
-	flag.StringVar(&configFile, "config", "", "Configuration file")
-	flag.StringVar(&grpcAddr, "grpc-addr", grpcAddrDefault, "gRPC listen address")
-	flag.StringVar(&salt, "salt", saltDefault, "Salt used for authentication")
+func parseFlags(config *Config, configFilePath *string) {
+	flag.StringVar(&config.RunAddr, "a", runAddrDefault, "HTTP listen address")
+	flag.StringVar(&config.BaseURL, "b", baseURLDefault, "Base URL")
+	flag.StringVar(&config.FileStoragePath, "f", "", "Short URL JSON storage")
+	flag.StringVar(&config.DatabaseDSN, "d", "", "Database DSN")
+	flag.BoolVar(&config.EnableHTTPS, "s", false, "Enable HTTPS")
+	flag.StringVar(&config.TrustedSubnet, "t", "", "Trusted Subnet")
+	flag.StringVar(configFilePath, "c", "", "Configuration file")
+	flag.StringVar(configFilePath, "config", "", "Configuration file")
+	flag.StringVar(&config.GRPCAddr, "grpc-addr", grpcAddrDefault, "gRPC listen address")
+	flag.StringVar(&config.Salt, "salt", saltDefault, "Salt used for authentication")
 
 	flag.Parse()
 }
 
-func parseJSONConfig(config *Config) {
-	f, err := os.Open(configFile)
+func parseJSONConfig(config *Config, configFilePath string) {
+	f, err := os.Open(configFilePath)
 	if err != nil {
 		log.Fatalf("config: error opening config file: %v", err)
 	}
@@ -97,58 +90,58 @@ func parseJSONConfig(config *Config) {
 	}
 }
 
-func overrideConfigByFlags(config *Config) {
-	if runAddr != "" && runAddr != runAddrDefault {
-		config.RunAddr = runAddr
-	} else if config.RunAddr == "" {
-		config.RunAddr = runAddrDefault
+func overrideConfigByFlags(config *Config, flagConfig *Config) {
+	if config.RunAddr == "" {
+		config.RunAddr = flagConfig.RunAddr
 	}
 
-	if baseURL != "" && baseURL != baseURLDefault {
-		config.BaseURL = baseURL
-	} else if config.BaseURL == "" {
-		config.BaseURL = baseURLDefault
+	if config.BaseURL == "" {
+		config.BaseURL = flagConfig.BaseURL
 	}
 
-	if fileStoragePath != "" {
-		config.FileStoragePath = fileStoragePath
+	if config.FileStoragePath == "" {
+		config.FileStoragePath = flagConfig.FileStoragePath
 	}
 
-	if databaseDSN != "" {
-		config.DatabaseDSN = databaseDSN
+	if config.DatabaseDSN == "" {
+		config.DatabaseDSN = flagConfig.DatabaseDSN
 	}
 
-	if grpcAddr != "" && grpcAddr != grpcAddrDefault {
-		config.GRPCAddr = grpcAddr
-	} else if config.GRPCAddr == "" {
-		config.GRPCAddr = grpcAddrDefault
+	if config.TrustedSubnet == "" {
+		config.TrustedSubnet = flagConfig.TrustedSubnet
 	}
 
-	if salt != "" && salt != saltDefault {
-		config.Salt = salt
-	} else if config.Salt == "" {
-		config.Salt = saltDefault
+	if !config.EnableHTTPS {
+		config.EnableHTTPS = flagConfig.EnableHTTPS
+	}
+
+	if config.GRPCAddr == "" {
+		config.GRPCAddr = flagConfig.GRPCAddr
+	}
+
+	if config.Salt == "" {
+		config.Salt = flagConfig.Salt
 	}
 }
 
 func overrideConfigByEnv(config *Config) {
-	if serverAddrEnv, ok := os.LookupEnv("SERVER_ADDR"); ok {
+	if serverAddrEnv, ok := os.LookupEnv("SERVER_ADDR"); ok && serverAddrEnv != "" {
 		config.RunAddr = serverAddrEnv
 	}
 
-	if baseURLEnv, ok := os.LookupEnv("BASE_URL"); ok {
+	if baseURLEnv, ok := os.LookupEnv("BASE_URL"); ok && baseURLEnv != "" {
 		config.BaseURL = baseURLEnv
 	}
 
-	if fileStoragePathEnv, ok := os.LookupEnv("FILE_STORAGE_PATH"); ok {
+	if fileStoragePathEnv, ok := os.LookupEnv("FILE_STORAGE_PATH"); ok && fileStoragePathEnv != "" {
 		config.FileStoragePath = fileStoragePathEnv
 	}
 
-	if databaseDSNEnv, ok := os.LookupEnv("DATABASE_DSN"); ok {
+	if databaseDSNEnv, ok := os.LookupEnv("DATABASE_DSN"); ok && databaseDSNEnv != "" {
 		config.DatabaseDSN = databaseDSNEnv
 	}
 
-	if enableHTTPSEnv, ok := os.LookupEnv("ENABLE_HTTPS"); ok {
+	if enableHTTPSEnv, ok := os.LookupEnv("ENABLE_HTTPS"); ok && enableHTTPSEnv != "" {
 		var err error
 		config.EnableHTTPS, err = strconv.ParseBool(enableHTTPSEnv)
 		if err != nil {
@@ -156,15 +149,15 @@ func overrideConfigByEnv(config *Config) {
 		}
 	}
 
-	if trustedSubnetEnv, ok := os.LookupEnv("TRUSTED_SUBNET"); ok {
+	if trustedSubnetEnv, ok := os.LookupEnv("TRUSTED_SUBNET"); ok && trustedSubnetEnv != "" {
 		config.TrustedSubnet = trustedSubnetEnv
 	}
 
-	if grpcAddrEnv, ok := os.LookupEnv("GRPC_ADDR"); ok {
+	if grpcAddrEnv, ok := os.LookupEnv("GRPC_ADDR"); ok && grpcAddrEnv != "" {
 		config.GRPCAddr = grpcAddrEnv
 	}
 
-	if saltEnv, ok := os.LookupEnv("SHORTENER_SALT"); ok {
+	if saltEnv, ok := os.LookupEnv("SHORTENER_SALT"); ok && saltEnv != "" {
 		config.Salt = saltEnv
 	}
 }
