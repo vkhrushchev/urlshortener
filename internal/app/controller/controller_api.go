@@ -16,10 +16,10 @@ import (
 
 // APIController используется для обработки API-запросов приложения
 type APIController struct {
-	createShortURLUseCase usecase.ICreateShortURLUseCase // Сценарий создания короткой ссылки
-	getShortURLUseCase    usecase.IGetShortURLUseCase    // Сценарий получения короткой ссылки
-	deleteShortURLUseCase usecase.IDeleteShortURLUseCase // Сценарий удаления короткой ссылки
-	baseURL               string                         // URL до сервера с развернутым приложением
+	shortURLCreator  shortURLCreator  // Сценарий создания короткой ссылки
+	shortURLProvider shortURLProvider // Сценарий получения короткой ссылки
+	shortURLDeleter  shortURLDeleter  // Сценарий удаления короткой ссылки
+	baseURL          string           // URL до сервера с развернутым приложением
 }
 
 // NewAPIController создает новый экземпляр структуры APIController
@@ -30,15 +30,15 @@ type APIController struct {
 //	getShortURLUseCase - use case получения короткой ссылки
 func NewAPIController(
 	baseURL string,
-	createShortURLUseCase usecase.ICreateShortURLUseCase,
-	getShortURLUseCase usecase.IGetShortURLUseCase,
-	deleteShortURLUseCase usecase.IDeleteShortURLUseCase,
+	createShortURLUseCase shortURLCreator,
+	shortURLProvider shortURLProvider,
+	shortURLDeleter shortURLDeleter,
 ) *APIController {
 	return &APIController{
-		baseURL:               baseURL,
-		createShortURLUseCase: createShortURLUseCase,
-		getShortURLUseCase:    getShortURLUseCase,
-		deleteShortURLUseCase: deleteShortURLUseCase,
+		baseURL:          baseURL,
+		shortURLCreator:  createShortURLUseCase,
+		shortURLProvider: shortURLProvider,
+		shortURLDeleter:  shortURLDeleter,
 	}
 }
 
@@ -83,7 +83,7 @@ func (c *APIController) CreateShortURLHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	longURL := apiRequest.URL
-	shortURLDomain, err := c.createShortURLUseCase.CreateShortURL(r.Context(), longURL)
+	shortURLDomain, err := c.shortURLCreator.CreateShortURL(r.Context(), longURL)
 	if err != nil && !errors.Is(err, usecase.ErrConflict) {
 		apiResponse.ErrorStatus = fmt.Sprintf("%d", http.StatusInternalServerError)
 		apiResponse.ErrorDescription = fmt.Sprintf("Error when saving short URL: %s", err.Error())
@@ -141,7 +141,7 @@ func (c *APIController) CreateShortURLBatchHandler(w http.ResponseWriter, r *htt
 		createShortURLBatchDomains = append(createShortURLBatchDomains, shortURLBatchDomain)
 	}
 
-	createShortURLBatchResultDomains, err := c.createShortURLUseCase.CreateShortURLBatch(r.Context(), createShortURLBatchDomains)
+	createShortURLBatchResultDomains, err := c.shortURLCreator.CreateShortURLBatch(r.Context(), createShortURLBatchDomains)
 	if err != nil {
 		log.Errorw("app: error when store batch of URLs", "err", err)
 
@@ -175,7 +175,7 @@ func (c *APIController) CreateShortURLBatchHandler(w http.ResponseWriter, r *htt
 //	@Router		/api/user/urls [get]
 func (c *APIController) GetShortURLByUserID(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(common.UserIDContextKey).(string)
-	shortURLDomains, err := c.getShortURLUseCase.GetShortURLsByUserID(r.Context(), userID)
+	shortURLDomains, err := c.shortURLProvider.GetShortURLsByUserID(r.Context(), userID)
 	if err != nil {
 		log.Errorw("app: error when get shortURL by userID", "userID", userID, "err", err)
 
@@ -227,7 +227,7 @@ func (c *APIController) DeleteShortURLs(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err := c.deleteShortURLUseCase.DeleteShortURLsByShortURIs(context.WithoutCancel(r.Context()), apiRequest)
+	err := c.shortURLDeleter.DeleteShortURLsByShortURIs(context.WithoutCancel(r.Context()), apiRequest)
 	if err != nil {
 		log.Errorw("app: error when delete by shortURIs", "err", err)
 

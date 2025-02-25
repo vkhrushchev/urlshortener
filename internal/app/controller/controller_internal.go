@@ -1,20 +1,24 @@
 package controller
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/vkhrushchev/urlshortener/internal/app/dto"
-	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
 	"net/http"
 )
 
+type statsProvider interface {
+	GetStats(ctx context.Context) (urlCount int, userCount int, err error)
+}
+
 // InternalController используется для обработки запросов приложения из доверенной сети
 type InternalController struct {
-	statsUseCase usecase.IStatsUseCase
+	statsProvider statsProvider
 }
 
 // NewInternalController создает новый экземпляр структуры InternalController
-func NewInternalController(statsUseCase usecase.IStatsUseCase) *InternalController {
-	return &InternalController{statsUseCase: statsUseCase}
+func NewInternalController(statsProvider statsProvider) *InternalController {
+	return &InternalController{statsProvider: statsProvider}
 }
 
 // GetStats возвращает статистику по сервису
@@ -26,7 +30,7 @@ func NewInternalController(statsUseCase usecase.IStatsUseCase) *InternalControll
 //	@Failure	500	{string}	string	"внутренняя ошибка сервиса"
 //	@Router		/api/internal/stats [get]
 func (c *InternalController) GetStats(w http.ResponseWriter, r *http.Request) {
-	urlCount, userCount, err := c.statsUseCase.GetStats(r.Context())
+	urlCount, userCount, err := c.statsProvider.GetStats(r.Context())
 	if err != nil {
 		log.Errorw("controller: failed to get stats", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

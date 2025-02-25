@@ -16,37 +16,55 @@ import (
 
 var log = zap.Must(zap.NewDevelopment()).Sugar()
 
+type shortURLCreator interface {
+	CreateShortURL(ctx context.Context, url string) (domain.ShortURLDomain, error)
+	CreateShortURLBatch(ctx context.Context, createShortURLBatchDomains []domain.CreateShortURLBatchDomain) ([]domain.CreateShortURLBatchResultDomain, error)
+}
+
+type shortURLProvider interface {
+	GetShortURLByShortURI(ctx context.Context, shortURI string) (domain.ShortURLDomain, error)
+	GetShortURLsByUserID(ctx context.Context, userID string) ([]domain.ShortURLDomain, error)
+}
+
+type shortURLDeleter interface {
+	DeleteShortURLsByShortURIs(ctx context.Context, shortURIs []string) error
+}
+
+type statsProvider interface {
+	GetStats(ctx context.Context) (urlCount int, userCount int, err error)
+}
+
 type ShortenerServiceServerImpl struct {
 	pb.UnimplementedShortenerServiceServer
-	createShortURLUseCase usecase.ICreateShortURLUseCase
-	getShortURLUseCase    usecase.IGetShortURLUseCase
-	deleteShortURLUseCase usecase.IDeleteShortURLUseCase
-	statsUseCase          usecase.IStatsUseCase
-	dbLookup              *db.DBLookup
-	baseURL               string
+	shortURLCreator  shortURLCreator
+	shortURLProvider shortURLProvider
+	shortURLDeleter  shortURLDeleter
+	statsProvider    statsProvider
+	dbLookup         *db.DBLookup
+	baseURL          string
 }
 
 func NewShortenerServiceServer(
-	createShortURLUseCase usecase.ICreateShortURLUseCase,
-	getShortURLUseCase usecase.IGetShortURLUseCase,
-	deleteShortURLUseCase usecase.IDeleteShortURLUseCase,
-	statsUseCase usecase.IStatsUseCase,
+	shortURLCreator shortURLCreator,
+	shortURLProvider shortURLProvider,
+	shortURLDeleter shortURLDeleter,
+	statsProvider statsProvider,
 	dbLookup *db.DBLookup,
 	baseURL string) *ShortenerServiceServerImpl {
 	return &ShortenerServiceServerImpl{
-		createShortURLUseCase: createShortURLUseCase,
-		getShortURLUseCase:    getShortURLUseCase,
-		deleteShortURLUseCase: deleteShortURLUseCase,
-		statsUseCase:          statsUseCase,
-		dbLookup:              dbLookup,
-		baseURL:               baseURL,
+		shortURLCreator:  shortURLCreator,
+		shortURLProvider: shortURLProvider,
+		shortURLDeleter:  shortURLDeleter,
+		statsProvider:    statsProvider,
+		dbLookup:         dbLookup,
+		baseURL:          baseURL,
 	}
 }
 
 func (s *ShortenerServiceServerImpl) CreateShortURL(ctx context.Context, request *pb.CreateShortURLRequest) (*pb.CreateShortURLResponse, error) {
 	log.Infow("grpc: CreateShortURL", "original_url", request.OriginalUrl)
 
-	shortURLDomain, err := s.createShortURLUseCase.CreateShortURL(ctx, request.OriginalUrl)
+	shortURLDomain, err := s.shortURLCreator.CreateShortURL(ctx, request.OriginalUrl)
 	if err != nil && errors.Is(err, usecase.ErrConflict) {
 		log.Infow("grpc: short URL already exists", "original_url", request.OriginalUrl)
 		return nil, status.Errorf(codes.AlreadyExists, "short url already exists: %v", err)
@@ -66,7 +84,7 @@ func (s *ShortenerServiceServerImpl) CreateShortURL(ctx context.Context, request
 func (s *ShortenerServiceServerImpl) GetShortURL(ctx context.Context, request *pb.GetShortURLRequest) (*pb.GetShortURLResponse, error) {
 	log.Infow("grpc: GetShortURL", "short_uri", request.ShortUri)
 
-	shortURLDomain, err := s.getShortURLUseCase.GetShortURLByShortURI(ctx, request.ShortUri)
+	shortURLDomain, err := s.shortURLProvider.GetShortURLByShortURI(ctx, request.ShortUri)
 	if err != nil && errors.Is(err, usecase.ErrNotFound) {
 		log.Infow("grpc: short URL not found", "short_uri", request.ShortUri)
 		return nil, status.Errorf(codes.NotFound, "short url not found: %v", err)
@@ -94,7 +112,7 @@ func (s *ShortenerServiceServerImpl) CreateShortURLBatch(ctx context.Context, re
 		})
 	}
 
-	createShortURLBatchResultDomains, err := s.createShortURLUseCase.CreateShortURLBatch(ctx, createShortURLBatchDomains)
+	createShortURLBatchResultDomains, err := s.shortURLCreator.CreateShortURLBatch(ctx, createShortURLBatchDomains)
 	if err != nil {
 		log.Errorw("grpc: CreateShortURLBatch failed", "error", err)
 		return nil, status.Errorf(codes.Internal, "cannot CreateShortURLBatch: %v", err)
@@ -118,7 +136,7 @@ func (s *ShortenerServiceServerImpl) GetShortURLByUserID(ctx context.Context, re
 	userID := ctx.Value(common.UserIDContextKey).(string)
 	log.Infow("gprc: GetShortURLByUserID", "user_id", userID)
 
-	shortURLDomains, err := s.getShortURLUseCase.GetShortURLsByUserID(ctx, userID)
+	shortURLDomains, err := s.shortURLProvider.GetShortURLsByUserID(ctx, userID)
 	if err != nil {
 		log.Errorw("grpc: GetShortURLByUserID failed", "error", err)
 		return nil, status.Errorf(codes.Internal, "cannot GetShortURLByUserID: %v", err)
@@ -141,7 +159,7 @@ func (s *ShortenerServiceServerImpl) GetShortURLByUserID(ctx context.Context, re
 func (s *ShortenerServiceServerImpl) DeleteShortURLsByShortURIs(ctx context.Context, request *pb.DeleteShortURLsByShortURIsRequest) (*pb.DeleteShortURLsByShortURIsResponse, error) {
 	log.Infow("gprc: DeleteShortURLsByShortURIs", "batch_size", len(request.ShortURIs))
 
-	err := s.deleteShortURLUseCase.DeleteShortURLsByShortURIs(ctx, request.ShortURIs)
+	err := s.shortURLDeleter.DeleteShortURLsByShortURIs(ctx, request.ShortURIs)
 	if err != nil {
 		log.Errorw("grpc: DeleteShortURLsByShortURIs failed", "error", err)
 		return nil, status.Errorf(codes.Internal, "cannot DeleteShortURLsByShortURIs: %v", err)
@@ -168,7 +186,7 @@ func (s *ShortenerServiceServerImpl) Ping(ctx context.Context, request *pb.PingR
 func (s *ShortenerServiceServerImpl) GetStats(ctx context.Context, request *pb.GetStatsRequest) (*pb.GetStatsResponse, error) {
 	log.Infow("gprc: GetStats")
 
-	urlCount, userCount, err := s.statsUseCase.GetStats(ctx)
+	urlCount, userCount, err := s.statsProvider.GetStats(ctx)
 	if err != nil {
 		log.Errorw("grpc: GetStats failed", "error", err)
 		return nil, status.Errorf(codes.Internal, "cannot GetStats: %v", err)

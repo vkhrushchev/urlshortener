@@ -52,6 +52,7 @@ func ReadConfig() Config {
 
 	overrideConfigByFlags(&config, &flagConfig)
 	log.Debugw("overrideConfigByFlags: ", "config", config)
+
 	overrideConfigByEnv(&config)
 	log.Debugw("overrideConfigByEnv: ", "config", config)
 

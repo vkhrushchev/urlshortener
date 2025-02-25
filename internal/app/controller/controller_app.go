@@ -16,9 +16,9 @@ import (
 
 // AppController используется для обработки не API-запросов приложения
 type AppController struct {
-	createShortURLUseCase usecase.ICreateShortURLUseCase // Сценарий создания короткой ссылки
-	getShortURLUseCase    usecase.IGetShortURLUseCase    // Сценарий получения короткой ссылки
-	baseURL               string                         // URL до сервера с развернутым приложением
+	shortURLCreator  shortURLCreator  // Сценарий создания короткой ссылки
+	shortURLProvider shortURLProvider // Сценарий получения короткой ссылки
+	baseURL          string           // URL до сервера с развернутым приложением
 }
 
 // NewAppController создает новый экземпляр структуры AppController
@@ -28,13 +28,13 @@ type AppController struct {
 //	getShortURLUseCase - use case получения короткой ссылки
 func NewAppController(
 	baseURL string,
-	createShortURLUseCase usecase.ICreateShortURLUseCase,
-	getShortURLUseCase usecase.IGetShortURLUseCase,
+	shortURLCreator shortURLCreator,
+	shortURLProvider shortURLProvider,
 ) *AppController {
 	return &AppController{
-		baseURL:               baseURL,
-		createShortURLUseCase: createShortURLUseCase,
-		getShortURLUseCase:    getShortURLUseCase,
+		baseURL:          baseURL,
+		shortURLCreator:  shortURLCreator,
+		shortURLProvider: shortURLProvider,
 	}
 }
 
@@ -67,7 +67,7 @@ func (c *AppController) CreateShortURLHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	longURL := strings.TrimSpace(bodyBuffer.String())
-	shortURLDomain, err := c.createShortURLUseCase.CreateShortURL(r.Context(), longURL)
+	shortURLDomain, err := c.shortURLCreator.CreateShortURL(r.Context(), longURL)
 	if err != nil && !errors.Is(err, usecase.ErrConflict) {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Errorw(err.Error())
@@ -109,7 +109,7 @@ func (c *AppController) CreateShortURLHandler(w http.ResponseWriter, r *http.Req
 func (c *AppController) GetURLHandler(w http.ResponseWriter, r *http.Request) {
 	shortURI := chi.URLParam(r, "id")
 
-	shortURLEntry, err := c.getShortURLUseCase.GetShortURLByShortURI(r.Context(), shortURI)
+	shortURLEntry, err := c.shortURLProvider.GetShortURLByShortURI(r.Context(), shortURI)
 	if err != nil && !errors.Is(err, usecase.ErrNotFound) {
 		log.Errorw("app: error when get original url from storage", "err", err)
 

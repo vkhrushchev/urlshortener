@@ -24,12 +24,6 @@ var (
 	ErrUnexpected = errors.New("unexpected error")
 )
 
-// ICreateShortURLUseCase интерфейс описывающий сценарий создания короткой ссылки
-type ICreateShortURLUseCase interface {
-	CreateShortURL(ctx context.Context, url string) (domain.ShortURLDomain, error)
-	CreateShortURLBatch(ctx context.Context, createShortURLBatchDomains []domain.CreateShortURLBatchDomain) ([]domain.CreateShortURLBatchResultDomain, error)
-}
-
 // CreateShortURLUseCase реализует интерфейс ICreateShortURLUseCase
 type CreateShortURLUseCase struct {
 	repo repository.IShortURLRepository
@@ -102,12 +96,6 @@ func (uc *CreateShortURLUseCase) CreateShortURLBatch(ctx context.Context, create
 	return result, nil
 }
 
-// IGetShortURLUseCase интерфейс описывающий сценарий создания получения короткой ссылки
-type IGetShortURLUseCase interface {
-	GetShortURLByShortURI(ctx context.Context, shortURI string) (domain.ShortURLDomain, error)
-	GetShortURLsByUserID(ctx context.Context, userID string) ([]domain.ShortURLDomain, error)
-}
-
 // GetShortURLUseCase реализует интерфейс IGetShortURLUseCase
 type GetShortURLUseCase struct {
 	repo repository.IShortURLRepository
@@ -154,11 +142,6 @@ func (uc *GetShortURLUseCase) GetShortURLsByUserID(ctx context.Context, userID s
 	return result, nil
 }
 
-// IDeleteShortURLUseCase интерфейс описывающий сценарий удаления ссылок
-type IDeleteShortURLUseCase interface {
-	DeleteShortURLsByShortURIs(ctx context.Context, shortURIs []string) error
-}
-
 // DeleteShortURLUseCase реализует IDeleteShortURLUseCase
 type DeleteShortURLUseCase struct {
 	repo repository.IShortURLRepository
@@ -181,11 +164,6 @@ func (uc *DeleteShortURLUseCase) DeleteShortURLsByShortURIs(ctx context.Context,
 	}
 
 	return nil
-}
-
-// IStatsUseCase интерфейс описывающий сценарий получения статистики
-type IStatsUseCase interface {
-	GetStats(ctx context.Context) (urlCount int, userCount int, err error)
 }
 
 // StatsUseCase структура реализующая интерфейс IStatsUseCase
