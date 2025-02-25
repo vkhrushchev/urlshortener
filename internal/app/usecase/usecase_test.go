@@ -19,7 +19,7 @@ import (
 type CreateShortURLUseCaseTestSuite struct {
 	suite.Suite
 	repositoryMock *mock_repository.MockIShortURLRepository
-	useCase        ICreateShortURLUseCase
+	useCase        *CreateShortURLUseCase
 }
 
 func (suite *CreateShortURLUseCaseTestSuite) SetupTest() {
@@ -168,7 +168,7 @@ func TestCreateShortURLUseCaseTestSuite(t *testing.T) {
 type GetShortURLUseCaseTestSuite struct {
 	suite.Suite
 	repositoryMock *mock_repository.MockIShortURLRepository
-	useCase        IGetShortURLUseCase
+	useCase        *GetShortURLUseCase
 }
 
 func (suite *GetShortURLUseCaseTestSuite) SetupTest() {
@@ -282,7 +282,7 @@ func TestGetShortURLUseCaseTestSuite(t *testing.T) {
 type DeleteShortURLUseCaseTestSuite struct {
 	suite.Suite
 	repositoryMock *mock_repository.MockIShortURLRepository
-	useCase        IDeleteShortURLUseCase
+	useCase        *DeleteShortURLUseCase
 }
 
 func (suite *DeleteShortURLUseCaseTestSuite) SetupTest() {
@@ -340,7 +340,7 @@ func BenchmarkCreateShortURLUseCase_CreateShortURL(b *testing.B) {
 type StatsUseCaseTestSuite struct {
 	suite.Suite
 	repositoryMock *mock_repository.MockIShortURLRepository
-	useCase        IStatsUseCase
+	useCase        *StatsUseCase
 }
 
 func (suite *StatsUseCaseTestSuite) SetupTest() {
