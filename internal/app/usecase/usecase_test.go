@@ -12,19 +12,19 @@ import (
 	"github.com/vkhrushchev/urlshortener/internal/app/domain"
 	"github.com/vkhrushchev/urlshortener/internal/app/entity"
 	"github.com/vkhrushchev/urlshortener/internal/app/repository"
-	mock_repository "github.com/vkhrushchev/urlshortener/internal/app/repository/mock"
+	mock_usecase "github.com/vkhrushchev/urlshortener/internal/app/usecase/mocks"
 	"github.com/vkhrushchev/urlshortener/internal/util"
 )
 
 type CreateShortURLUseCaseTestSuite struct {
 	suite.Suite
-	repositoryMock *mock_repository.MockIShortURLRepository
+	repositoryMock *mock_usecase.MockshortURLRepository
 	useCase        *CreateShortURLUseCase
 }
 
 func (suite *CreateShortURLUseCaseTestSuite) SetupTest() {
 	mockCtrl := gomock.NewController(suite.T())
-	suite.repositoryMock = mock_repository.NewMockIShortURLRepository(mockCtrl)
+	suite.repositoryMock = mock_usecase.NewMockshortURLRepository(mockCtrl)
 
 	suite.useCase = NewCreateShortURLUseCase(suite.repositoryMock)
 }
@@ -167,13 +167,13 @@ func TestCreateShortURLUseCaseTestSuite(t *testing.T) {
 
 type GetShortURLUseCaseTestSuite struct {
 	suite.Suite
-	repositoryMock *mock_repository.MockIShortURLRepository
+	repositoryMock *mock_usecase.MockshortURLRepository
 	useCase        *GetShortURLUseCase
 }
 
 func (suite *GetShortURLUseCaseTestSuite) SetupTest() {
 	mockCtrl := gomock.NewController(suite.T())
-	suite.repositoryMock = mock_repository.NewMockIShortURLRepository(mockCtrl)
+	suite.repositoryMock = mock_usecase.NewMockshortURLRepository(mockCtrl)
 
 	suite.useCase = NewGetShortURLUseCase(suite.repositoryMock)
 }
@@ -281,13 +281,13 @@ func TestGetShortURLUseCaseTestSuite(t *testing.T) {
 
 type DeleteShortURLUseCaseTestSuite struct {
 	suite.Suite
-	repositoryMock *mock_repository.MockIShortURLRepository
+	repositoryMock *mock_usecase.MockshortURLRepository
 	useCase        *DeleteShortURLUseCase
 }
 
 func (suite *DeleteShortURLUseCaseTestSuite) SetupTest() {
 	mockCtrl := gomock.NewController(suite.T())
-	suite.repositoryMock = mock_repository.NewMockIShortURLRepository(mockCtrl)
+	suite.repositoryMock = mock_usecase.NewMockshortURLRepository(mockCtrl)
 
 	suite.useCase = NewDeleteShortURLUseCase(suite.repositoryMock)
 }
@@ -339,13 +339,13 @@ func BenchmarkCreateShortURLUseCase_CreateShortURL(b *testing.B) {
 
 type StatsUseCaseTestSuite struct {
 	suite.Suite
-	repositoryMock *mock_repository.MockIShortURLRepository
+	repositoryMock *mock_usecase.MockstatsRepository
 	useCase        *StatsUseCase
 }
 
 func (suite *StatsUseCaseTestSuite) SetupTest() {
 	mockCtrl := gomock.NewController(suite.T())
-	suite.repositoryMock = mock_repository.NewMockIShortURLRepository(mockCtrl)
+	suite.repositoryMock = mock_usecase.NewMockstatsRepository(mockCtrl)
 
 	suite.useCase = NewStatsUseCase(suite.repositoryMock)
 }

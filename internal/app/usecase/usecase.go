@@ -13,6 +13,8 @@ import (
 	"go.uber.org/zap"
 )
 
+//go:generate mockgen -source ./usecase.go -destination mocks/mock_repository.go
+
 var log = zap.Must(zap.NewDevelopment()).Sugar()
 
 // ErrConflict - короткая ссылка уже существует
@@ -24,13 +26,27 @@ var (
 	ErrUnexpected = errors.New("unexpected error")
 )
 
+type shortURLRepository interface {
+	SaveShortURL(ctx context.Context, shortURLEntity *entity.ShortURLEntity) (*entity.ShortURLEntity, error)
+	SaveShortURLs(ctx context.Context, shortURLEntities []entity.ShortURLEntity) ([]entity.ShortURLEntity, error)
+
+	GetShortURLByShortURI(ctx context.Context, shortURI string) (entity.ShortURLEntity, error)
+	GetShortURLsByUserID(ctx context.Context, userID string) ([]entity.ShortURLEntity, error)
+
+	DeleteShortURLsByShortURIs(ctx context.Context, shortURIs []string) error
+}
+
+type statsRepository interface {
+	GetStats(ctx context.Context) (urlCount int, userCount int, err error)
+}
+
 // CreateShortURLUseCase реализует интерфейс ICreateShortURLUseCase
 type CreateShortURLUseCase struct {
-	repo repository.IShortURLRepository
+	repo shortURLRepository
 }
 
 // NewCreateShortURLUseCase создает экземпляр CreateShortURLUseCase
-func NewCreateShortURLUseCase(repo repository.IShortURLRepository) *CreateShortURLUseCase {
+func NewCreateShortURLUseCase(repo shortURLRepository) *CreateShortURLUseCase {
 	return &CreateShortURLUseCase{repo: repo}
 }
 
@@ -98,11 +114,11 @@ func (uc *CreateShortURLUseCase) CreateShortURLBatch(ctx context.Context, create
 
 // GetShortURLUseCase реализует интерфейс IGetShortURLUseCase
 type GetShortURLUseCase struct {
-	repo repository.IShortURLRepository
+	repo shortURLRepository
 }
 
 // NewGetShortURLUseCase создает экземпляр GetShortURLUseCase
-func NewGetShortURLUseCase(repo repository.IShortURLRepository) *GetShortURLUseCase {
+func NewGetShortURLUseCase(repo shortURLRepository) *GetShortURLUseCase {
 	return &GetShortURLUseCase{repo: repo}
 }
 
@@ -144,11 +160,11 @@ func (uc *GetShortURLUseCase) GetShortURLsByUserID(ctx context.Context, userID s
 
 // DeleteShortURLUseCase реализует IDeleteShortURLUseCase
 type DeleteShortURLUseCase struct {
-	repo repository.IShortURLRepository
+	repo shortURLRepository
 }
 
 // NewDeleteShortURLUseCase создает экземпляр DeleteShortURLUseCase
-func NewDeleteShortURLUseCase(repo repository.IShortURLRepository) *DeleteShortURLUseCase {
+func NewDeleteShortURLUseCase(repo shortURLRepository) *DeleteShortURLUseCase {
 	return &DeleteShortURLUseCase{repo: repo}
 }
 
@@ -168,11 +184,11 @@ func (uc *DeleteShortURLUseCase) DeleteShortURLsByShortURIs(ctx context.Context,
 
 // StatsUseCase структура реализующая интерфейс IStatsUseCase
 type StatsUseCase struct {
-	repo repository.IShortURLRepository
+	repo statsRepository
 }
 
 // NewStatsUseCase создает экземпляр StatsUseCase
-func NewStatsUseCase(repo repository.IShortURLRepository) *StatsUseCase {
+func NewStatsUseCase(repo statsRepository) *StatsUseCase {
 	return &StatsUseCase{repo: repo}
 }
 

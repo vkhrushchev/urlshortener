@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/vkhrushchev/urlshortener/config"
+	"github.com/vkhrushchev/urlshortener/internal/app/entity"
 	"github.com/vkhrushchev/urlshortener/internal/app/grpc"
 	"github.com/vkhrushchev/urlshortener/internal/app/repository"
 	"github.com/vkhrushchev/urlshortener/internal/app/usecase"
@@ -24,6 +25,18 @@ var (
 	buildDate    = "N/A"
 	buildCommit  = "N/A"
 )
+
+type shortURLRepository interface {
+	SaveShortURL(ctx context.Context, shortURLEntity *entity.ShortURLEntity) (*entity.ShortURLEntity, error)
+	SaveShortURLs(ctx context.Context, shortURLEntities []entity.ShortURLEntity) ([]entity.ShortURLEntity, error)
+
+	GetShortURLByShortURI(ctx context.Context, shortURI string) (entity.ShortURLEntity, error)
+	GetShortURLsByUserID(ctx context.Context, userID string) ([]entity.ShortURLEntity, error)
+
+	DeleteShortURLsByShortURIs(ctx context.Context, shortURIs []string) error
+
+	GetStats(ctx context.Context) (urlCount int, userCount int, err error)
+}
 
 func main() {
 	log.Infof("Build version: %s\n", buildVersion)
@@ -89,8 +102,8 @@ func main() {
 	log.Infow("main: URLShortenerApp GRPC shutting down")
 }
 
-func initShortURLRepository(dbLookup *db.DBLookup, config config.Config) repository.IShortURLRepository {
-	var repo repository.IShortURLRepository
+func initShortURLRepository(dbLookup *db.DBLookup, config config.Config) shortURLRepository {
+	var repo shortURLRepository
 	var err error
 
 	if config.DatabaseDSN != "" {
