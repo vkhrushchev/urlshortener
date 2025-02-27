@@ -38,3 +38,9 @@ type APIGetAllURLByUserIDResponseEntry struct {
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
 }
+
+// APIInternalGetStatsResponse ответ на запрос статистики
+type APIInternalGetStatsResponse struct {
+	URLCount  int `json:"urls"`
+	UserCount int `json:"users"`
+}

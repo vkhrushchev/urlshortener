@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"github.com/vkhrushchev/urlshortener/internal/common"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -11,20 +12,19 @@ import (
 	"github.com/vkhrushchev/urlshortener/internal/app/domain"
 	"github.com/vkhrushchev/urlshortener/internal/app/entity"
 	"github.com/vkhrushchev/urlshortener/internal/app/repository"
-	mock_repository "github.com/vkhrushchev/urlshortener/internal/app/repository/mock"
-	"github.com/vkhrushchev/urlshortener/internal/middleware"
+	mock_usecase "github.com/vkhrushchev/urlshortener/internal/app/usecase/mocks"
 	"github.com/vkhrushchev/urlshortener/internal/util"
 )
 
 type CreateShortURLUseCaseTestSuite struct {
 	suite.Suite
-	repositoryMock *mock_repository.MockIShortURLRepository
-	useCase        ICreateShortURLUseCase
+	repositoryMock *mock_usecase.MockshortURLRepository
+	useCase        *CreateShortURLUseCase
 }
 
 func (suite *CreateShortURLUseCaseTestSuite) SetupTest() {
 	mockCtrl := gomock.NewController(suite.T())
-	suite.repositoryMock = mock_repository.NewMockIShortURLRepository(mockCtrl)
+	suite.repositoryMock = mock_usecase.NewMockshortURLRepository(mockCtrl)
 
 	suite.useCase = NewCreateShortURLUseCase(suite.repositoryMock)
 }
@@ -43,7 +43,7 @@ func (suite *CreateShortURLUseCaseTestSuite) TestCreateShortURL_success() {
 		SaveShortURL(gomock.Any(), gomock.Any()).
 		Return(testShortURLEntity, nil)
 
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, testUserID)
 	shortURLDomain, err := suite.useCase.CreateShortURL(testCtx, "https://ya.ru")
 	if err != nil {
 		log.Errorw("use_case: error when create shortURL", "error", err)
@@ -66,7 +66,7 @@ func (suite *CreateShortURLUseCaseTestSuite) TestCreateShortURL_conflict() {
 		SaveShortURL(gomock.Any(), gomock.Any()).
 		Return(testShortURLEntity, repository.ErrConflict)
 
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, uuid.NewString())
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, uuid.NewString())
 	shortURLDomain, err := suite.useCase.CreateShortURL(testCtx, "https://ya.ru")
 
 	suite.NotNilf(err, "err cannot be nil")
@@ -80,7 +80,7 @@ func (suite *CreateShortURLUseCaseTestSuite) TestCreateShortURL_unexpected_error
 		SaveShortURL(gomock.Any(), gomock.Any()).
 		Return(nil, repository.ErrUnexpected)
 
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, uuid.NewString())
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, uuid.NewString())
 	_, err := suite.useCase.CreateShortURL(testCtx, "https://ya.ru")
 
 	suite.NotNilf(err, "err cannot be nil")
@@ -112,7 +112,7 @@ func (suite *CreateShortURLUseCaseTestSuite) TestCreateShortURLBatch_success() {
 			nil,
 		)
 
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, testUserID)
 	testCreateShortURLBatchDomains := []domain.CreateShortURLBatchDomain{
 		{
 			CorrelationUUID: uuid.NewString(),
@@ -139,7 +139,7 @@ func (suite *CreateShortURLUseCaseTestSuite) TestCreateShortURLBatch_unexpected_
 		Return([]entity.ShortURLEntity{}, repository.ErrUnexpected)
 
 	testUserID := uuid.NewString()
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, testUserID)
 	testCreateShortURLBatchDomains := []domain.CreateShortURLBatchDomain{
 		{
 			CorrelationUUID: uuid.NewString(),
@@ -167,13 +167,13 @@ func TestCreateShortURLUseCaseTestSuite(t *testing.T) {
 
 type GetShortURLUseCaseTestSuite struct {
 	suite.Suite
-	repositoryMock *mock_repository.MockIShortURLRepository
-	useCase        IGetShortURLUseCase
+	repositoryMock *mock_usecase.MockshortURLRepository
+	useCase        *GetShortURLUseCase
 }
 
 func (suite *GetShortURLUseCaseTestSuite) SetupTest() {
 	mockCtrl := gomock.NewController(suite.T())
-	suite.repositoryMock = mock_repository.NewMockIShortURLRepository(mockCtrl)
+	suite.repositoryMock = mock_usecase.NewMockshortURLRepository(mockCtrl)
 
 	suite.useCase = NewGetShortURLUseCase(suite.repositoryMock)
 }
@@ -192,7 +192,7 @@ func (suite *GetShortURLUseCaseTestSuite) TestGetShortURL_success() {
 		GetShortURLByShortURI(gomock.Any(), gomock.Any()).
 		Return(testShortURLEntity, nil)
 
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, testUserID)
 	shortURLDomain, err := suite.useCase.GetShortURLByShortURI(testCtx, "abc")
 	if err != nil {
 		log.Errorw("use_case: error when get short url", "error", err)
@@ -208,7 +208,7 @@ func (suite *GetShortURLUseCaseTestSuite) TestGetShortURL_not_found() {
 		Return(entity.ShortURLEntity{}, repository.ErrNotFound)
 
 	testUserID := uuid.NewString()
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, testUserID)
 	_, err := suite.useCase.GetShortURLByShortURI(testCtx, "abc")
 	if err != nil && !errors.Is(err, repository.ErrNotFound) {
 		log.Errorw("use_case: error when get short url", "error", err)
@@ -224,7 +224,7 @@ func (suite *GetShortURLUseCaseTestSuite) TestGetShortURL_unexpected_error() {
 		Return(entity.ShortURLEntity{}, repository.ErrUnexpected)
 
 	testUserID := uuid.NewString()
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, testUserID)
 	_, err := suite.useCase.GetShortURLByShortURI(testCtx, "abc")
 	if err != nil && !errors.Is(err, repository.ErrUnexpected) {
 		log.Errorw("use_case: error when get short url", "error", err)
@@ -248,7 +248,7 @@ func (suite *GetShortURLUseCaseTestSuite) TestGetShortURLsByUserID_success() {
 		GetShortURLsByUserID(gomock.Any(), gomock.Any()).
 		Return([]entity.ShortURLEntity{testShortURLEntity}, nil)
 
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, testUserID)
 	shortURLDomains, err := suite.useCase.GetShortURLsByUserID(testCtx, testUserID)
 	if err != nil {
 		log.Errorw("use_case: error when get short urls by userID", "error", err)
@@ -264,7 +264,7 @@ func (suite *GetShortURLUseCaseTestSuite) TestGetShortURLsByUserID_unexpected_er
 		Return(nil, repository.ErrUnexpected)
 
 	testUserID := uuid.NewString()
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, testUserID)
 	shortURLDomains, err := suite.useCase.GetShortURLsByUserID(testCtx, testUserID)
 	if err != nil && !errors.Is(err, repository.ErrUnexpected) {
 		suite.Errorf(err, "use_case: error when get short urls by userID")
@@ -281,13 +281,13 @@ func TestGetShortURLUseCaseTestSuite(t *testing.T) {
 
 type DeleteShortURLUseCaseTestSuite struct {
 	suite.Suite
-	repositoryMock *mock_repository.MockIShortURLRepository
-	useCase        IDeleteShortURLUseCase
+	repositoryMock *mock_usecase.MockshortURLRepository
+	useCase        *DeleteShortURLUseCase
 }
 
 func (suite *DeleteShortURLUseCaseTestSuite) SetupTest() {
 	mockCtrl := gomock.NewController(suite.T())
-	suite.repositoryMock = mock_repository.NewMockIShortURLRepository(mockCtrl)
+	suite.repositoryMock = mock_usecase.NewMockshortURLRepository(mockCtrl)
 
 	suite.useCase = NewDeleteShortURLUseCase(suite.repositoryMock)
 }
@@ -298,7 +298,7 @@ func (suite *DeleteShortURLUseCaseTestSuite) TestDeleteShortURLsByShortURIs_succ
 		Return(nil)
 
 	testUserID := uuid.NewString()
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, testUserID)
 	err := suite.useCase.DeleteShortURLsByShortURIs(testCtx, []string{"abc"})
 	if err != nil {
 		suite.Errorf(err, "use_case: error when delete shortURLs by shortURIs")
@@ -311,7 +311,7 @@ func (suite *DeleteShortURLUseCaseTestSuite) TestDeleteShortURLsByShortURIs_unex
 		Return(repository.ErrUnexpected)
 
 	testUserID := uuid.NewString()
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, testUserID)
 	err := suite.useCase.DeleteShortURLsByShortURIs(testCtx, []string{"abc"})
 	if err != nil && !errors.Is(err, ErrUnexpected) {
 		suite.Errorf(err, "use_case: error when delete shortURLs by shortURIs")
@@ -327,7 +327,7 @@ func BenchmarkCreateShortURLUseCase_CreateShortURL(b *testing.B) {
 	useCase := NewCreateShortURLUseCase(repo)
 
 	testUserID := uuid.NewString()
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, testUserID)
 
 	for i := 0; i < b.N; i++ {
 		_, err := useCase.CreateShortURL(testCtx, "https://ya.ru")
@@ -335,4 +335,54 @@ func BenchmarkCreateShortURLUseCase_CreateShortURL(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
+}
+
+type StatsUseCaseTestSuite struct {
+	suite.Suite
+	repositoryMock *mock_usecase.MockstatsRepository
+	useCase        *StatsUseCase
+}
+
+func (suite *StatsUseCaseTestSuite) SetupTest() {
+	mockCtrl := gomock.NewController(suite.T())
+	suite.repositoryMock = mock_usecase.NewMockstatsRepository(mockCtrl)
+
+	suite.useCase = NewStatsUseCase(suite.repositoryMock)
+}
+
+func (suite *StatsUseCaseTestSuite) TestGetStats_success() {
+	suite.repositoryMock.EXPECT().
+		GetStats(gomock.Any()).
+		Return(5, 2, nil)
+
+	testUserID := uuid.NewString()
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, testUserID)
+	urlCount, userCount, err := suite.useCase.GetStats(testCtx)
+	if err != nil {
+		suite.Errorf(err, "use_case: error when get stats")
+	}
+
+	suite.Equal(5, urlCount, "urlCount must be equal 5")
+	suite.Equal(2, userCount, "userCount should be equal 2")
+}
+
+func (suite *StatsUseCaseTestSuite) TestGetStats_unexpected_error() {
+	suite.repositoryMock.EXPECT().
+		GetStats(gomock.Any()).
+		Return(0, 0, repository.ErrUnexpected)
+
+	testUserID := uuid.NewString()
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, testUserID)
+	urlCount, userCount, err := suite.useCase.GetStats(testCtx)
+	if err != nil && !errors.Is(err, repository.ErrUnexpected) {
+		suite.Errorf(err, "use_case: unexpected error when get stats")
+	}
+
+	suite.Equal(0, urlCount, "urlCount must be equal 0")
+	suite.Equal(0, userCount, "userCount should be equal 0")
+	suite.True(errors.Is(err, ErrUnexpected), "err should be ErrUnexpected")
+}
+
+func TestStatsUseCaseTestSuite(t *testing.T) {
+	suite.Run(t, new(StatsUseCaseTestSuite))
 }

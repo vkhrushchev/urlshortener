@@ -2,13 +2,13 @@ package repository
 
 import (
 	"context"
+	"github.com/vkhrushchev/urlshortener/internal/common"
 	"os"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
 	"github.com/vkhrushchev/urlshortener/internal/app/entity"
-	"github.com/vkhrushchev/urlshortener/internal/middleware"
 )
 
 const TestDataFile = "json_short_url_test_data.json"
@@ -44,7 +44,7 @@ func (s *JSONFileShortURLRepositoryTestSuite) TestSaveShortURL() {
 		Deleted:  false,
 	}
 
-	testCtx := context.WithValue(context.Background(), middleware.UserIDContextKey, testUserID)
+	testCtx := context.WithValue(context.Background(), common.UserIDContextKey, testUserID)
 	savedShortURL, err := s.repository.SaveShortURL(testCtx, testShortURL)
 	if err != nil {
 		s.Fail("unexpected error when save ShortURLEntity")

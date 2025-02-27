@@ -4,13 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/vkhrushchev/urlshortener/internal/common"
 	"sync"
 
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/vkhrushchev/urlshortener/internal/app/db"
 	"github.com/vkhrushchev/urlshortener/internal/app/entity"
-	"github.com/vkhrushchev/urlshortener/internal/middleware"
 )
 
 const (
@@ -19,6 +19,7 @@ const (
 	sqlSelectByOriginalURL = "SELECT su.uuid, su.short_url, su.original_url, su.user_id, su.is_deleted FROM short_url su WHERE su.original_url = $1"
 	sqlSelectByUserID      = "SELECT su.uuid, su.short_url, su.original_url, su.user_id, su.is_deleted FROM short_url su WHERE su.user_id = $1"
 	sqlUpdateIsDeleted     = "UPDATE short_url SET is_deleted = true WHERE is_deleted = false AND short_url = $1 AND user_id = $2"
+	sqlStats               = "SELECT (SELECT count(*) FROM short_url) AS url_count, (SELECT count(*) FROM (SELECT DISTINCT user_id FROM short_url)) AS user_count"
 )
 
 // DBShortURLRepository структура для хранения ссылки на db.DBLookup.
@@ -211,7 +212,7 @@ func (r *DBShortURLRepository) DeleteShortURLsByShortURIs(ctx context.Context, s
 		log.Errorw("repository: unexpected error", "err", err)
 		return ErrUnexpected
 	}
-	userID := ctx.Value(middleware.UserIDContextKey).(string)
+	userID := ctx.Value(common.UserIDContextKey).(string)
 	deleteByShortURIsTaskResultChannels := deleteByShortURIsTaskFanOut(ctx, stmt, &userID, shortURIsCh)
 	deleteByShortURIsTaskFanIn(tx, deleteByShortURIsTaskResultChannels)
 
@@ -292,4 +293,23 @@ func deleteByShortURIsTaskFanIn(tx *sql.Tx, deleteByShortURIsTaskResultChannels 
 			log.Errorw("repository: unexpected error", "err", err)
 		}
 	}()
+}
+
+// GetStats возвращает статистику по сервису
+// urlCount - количество коротких ссылок в сервисе
+// userCount - количество пользователей в сервисе
+func (r *DBShortURLRepository) GetStats(ctx context.Context) (urlCount int, userCount int, err error) {
+	dbLookup := r.dbLookup.GetDB()
+	sqlRow := dbLookup.QueryRowContext(ctx, sqlStats)
+	if err := sqlRow.Err(); err != nil {
+		log.Errorw("repository: unexpected error", "err", err)
+		return 0, 0, ErrUnexpected
+	}
+
+	if err := sqlRow.Scan(&urlCount, &userCount); err != nil {
+		log.Errorw("repository: unexpected error", "err", err)
+		return 0, 0, ErrUnexpected
+	}
+
+	return urlCount, userCount, nil
 }

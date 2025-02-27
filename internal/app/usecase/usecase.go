@@ -3,15 +3,17 @@ package usecase
 import (
 	"context"
 	"errors"
+	"github.com/vkhrushchev/urlshortener/internal/common"
 
 	"github.com/google/uuid"
 	"github.com/vkhrushchev/urlshortener/internal/app/domain"
 	"github.com/vkhrushchev/urlshortener/internal/app/entity"
 	"github.com/vkhrushchev/urlshortener/internal/app/repository"
-	"github.com/vkhrushchev/urlshortener/internal/middleware"
 	"github.com/vkhrushchev/urlshortener/internal/util"
 	"go.uber.org/zap"
 )
+
+//go:generate mockgen -source ./usecase.go -destination mocks/mock_repository.go
 
 var log = zap.Must(zap.NewDevelopment()).Sugar()
 
@@ -24,25 +26,33 @@ var (
 	ErrUnexpected = errors.New("unexpected error")
 )
 
-// ICreateShortURLUseCase интерфейс описывающий сценарий создания короткой ссылки
-type ICreateShortURLUseCase interface {
-	CreateShortURL(ctx context.Context, url string) (domain.ShortURLDomain, error)
-	CreateShortURLBatch(ctx context.Context, createShortURLBatchDomains []domain.CreateShortURLBatchDomain) ([]domain.CreateShortURLBatchResultDomain, error)
+type shortURLRepository interface {
+	SaveShortURL(ctx context.Context, shortURLEntity *entity.ShortURLEntity) (*entity.ShortURLEntity, error)
+	SaveShortURLs(ctx context.Context, shortURLEntities []entity.ShortURLEntity) ([]entity.ShortURLEntity, error)
+
+	GetShortURLByShortURI(ctx context.Context, shortURI string) (entity.ShortURLEntity, error)
+	GetShortURLsByUserID(ctx context.Context, userID string) ([]entity.ShortURLEntity, error)
+
+	DeleteShortURLsByShortURIs(ctx context.Context, shortURIs []string) error
+}
+
+type statsRepository interface {
+	GetStats(ctx context.Context) (urlCount int, userCount int, err error)
 }
 
 // CreateShortURLUseCase реализует интерфейс ICreateShortURLUseCase
 type CreateShortURLUseCase struct {
-	repo repository.IShortURLRepository
+	repo shortURLRepository
 }
 
 // NewCreateShortURLUseCase создает экземпляр CreateShortURLUseCase
-func NewCreateShortURLUseCase(repo repository.IShortURLRepository) *CreateShortURLUseCase {
+func NewCreateShortURLUseCase(repo shortURLRepository) *CreateShortURLUseCase {
 	return &CreateShortURLUseCase{repo: repo}
 }
 
 // CreateShortURL создает короткую ссылку
 func (uc *CreateShortURLUseCase) CreateShortURL(ctx context.Context, url string) (domain.ShortURLDomain, error) {
-	userID := ctx.Value(middleware.UserIDContextKey).(string)
+	userID := ctx.Value(common.UserIDContextKey).(string)
 	log.Infow("use_case: CreateShortURL", "url", url, "userID", userID)
 
 	shortURLEntity := &entity.ShortURLEntity{
@@ -67,7 +77,7 @@ func (uc *CreateShortURLUseCase) CreateShortURL(ctx context.Context, url string)
 
 // CreateShortURLBatch создает короткие ссылки пачкой
 func (uc *CreateShortURLUseCase) CreateShortURLBatch(ctx context.Context, createShortURLBatchDomains []domain.CreateShortURLBatchDomain) ([]domain.CreateShortURLBatchResultDomain, error) {
-	userID := ctx.Value(middleware.UserIDContextKey).(string)
+	userID := ctx.Value(common.UserIDContextKey).(string)
 	log.Infow("use_case: create short URL batch", "userID", userID)
 
 	shortURLEntities := make([]entity.ShortURLEntity, 0, len(createShortURLBatchDomains))
@@ -102,19 +112,13 @@ func (uc *CreateShortURLUseCase) CreateShortURLBatch(ctx context.Context, create
 	return result, nil
 }
 
-// IGetShortURLUseCase интерфейс описывающий сценарий создания получения короткой ссылки
-type IGetShortURLUseCase interface {
-	GetShortURLByShortURI(ctx context.Context, shortURI string) (domain.ShortURLDomain, error)
-	GetShortURLsByUserID(ctx context.Context, userID string) ([]domain.ShortURLDomain, error)
-}
-
 // GetShortURLUseCase реализует интерфейс IGetShortURLUseCase
 type GetShortURLUseCase struct {
-	repo repository.IShortURLRepository
+	repo shortURLRepository
 }
 
 // NewGetShortURLUseCase создает экземпляр GetShortURLUseCase
-func NewGetShortURLUseCase(repo repository.IShortURLRepository) *GetShortURLUseCase {
+func NewGetShortURLUseCase(repo shortURLRepository) *GetShortURLUseCase {
 	return &GetShortURLUseCase{repo: repo}
 }
 
@@ -154,24 +158,19 @@ func (uc *GetShortURLUseCase) GetShortURLsByUserID(ctx context.Context, userID s
 	return result, nil
 }
 
-// IDeleteShortURLUseCase интерфейс описывающий сценарий удаления ссылок
-type IDeleteShortURLUseCase interface {
-	DeleteShortURLsByShortURIs(ctx context.Context, shortURIs []string) error
-}
-
 // DeleteShortURLUseCase реализует IDeleteShortURLUseCase
 type DeleteShortURLUseCase struct {
-	repo repository.IShortURLRepository
+	repo shortURLRepository
 }
 
 // NewDeleteShortURLUseCase создает экземпляр DeleteShortURLUseCase
-func NewDeleteShortURLUseCase(repo repository.IShortURLRepository) *DeleteShortURLUseCase {
+func NewDeleteShortURLUseCase(repo shortURLRepository) *DeleteShortURLUseCase {
 	return &DeleteShortURLUseCase{repo: repo}
 }
 
 // DeleteShortURLsByShortURIs удаляет короткие ссылки по списку shortURIs
 func (uc *DeleteShortURLUseCase) DeleteShortURLsByShortURIs(ctx context.Context, shortURIs []string) error {
-	userID := ctx.Value(middleware.UserIDContextKey).(string)
+	userID := ctx.Value(common.UserIDContextKey).(string)
 	log.Infow("use_case: delete short URLs by shortURIs", "shortURIs", shortURIs, "userID", userID)
 
 	err := uc.repo.DeleteShortURLsByShortURIs(ctx, shortURIs)
@@ -181,4 +180,29 @@ func (uc *DeleteShortURLUseCase) DeleteShortURLsByShortURIs(ctx context.Context,
 	}
 
 	return nil
+}
+
+// StatsUseCase структура реализующая интерфейс IStatsUseCase
+type StatsUseCase struct {
+	repo statsRepository
+}
+
+// NewStatsUseCase создает экземпляр StatsUseCase
+func NewStatsUseCase(repo statsRepository) *StatsUseCase {
+	return &StatsUseCase{repo: repo}
+}
+
+// GetStats возвращает статистику по сервису
+// urlCount - количество коротких ссылок в сервисе
+// userCount - количество пользователей в сервисе
+func (uc *StatsUseCase) GetStats(ctx context.Context) (urlCount int, userCount int, err error) {
+	log.Infow("use_case: get stats")
+
+	urlCount, userCount, err = uc.repo.GetStats(ctx)
+	if err != nil {
+		log.Errorw("use_case: failed to get stats", "error", err)
+		return 0, 0, ErrUnexpected
+	}
+
+	return urlCount, userCount, nil
 }
